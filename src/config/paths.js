@@ -1,0 +1,6 @@
+import { appId } from "./constants";
+
+export const BASE = ["artifacts", appId, "public", "data"];
+
+export const colRefPath = (name) => [...BASE, name];         // menu, orders, inventory...
+export const docRefPath = (col, id) => [...BASE, col, id];   // adminConfig/owner, appConfig/finance...
