@@ -71,7 +71,29 @@ export default function App() {
   // =========================
   // [S03] State
   // =========================
-  const [appMode, setAppMode] = useState(isAdminRoute ? "portal" : "customer");
+ 
+// بهذا:
+const [appMode, setAppMode] = useState(() => {
+  // إذا كان في صفحة admin وفيه session محفوظ، ارجع "admin"
+  if (isAdminRoute) {
+    const savedSession = localStorage.getItem("wingi_admin_session");
+    if (savedSession) {
+      return "admin"; // يرجع مباشرة للـ admin
+    }
+    return "portal"; // لو ما فيه session، يرجع للـ portal
+  }
+  return "customer";
+});
+
+// وعدّل دالة setAppMode لحفظها في localStorage:
+const handleSetAppMode = (mode) => {
+  setAppMode(mode);
+  if (mode === "admin") {
+    localStorage.setItem("wingi_app_mode", "admin");
+  } else {
+    localStorage.removeItem("wingi_app_mode");
+  }
+};
   const [user, setUser] = useState(null);
 
   // Languages

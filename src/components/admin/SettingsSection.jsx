@@ -1,5 +1,11 @@
+// ===============================
+// SettingsSection.jsx - محسّن
+// Features: Full Translation
+// ===============================
+
 import React, { useState, useEffect } from "react";
 import { doc, setDoc, addDoc, collection, updateDoc, deleteDoc } from "firebase/firestore";
+import { Settings, Star, Trash2, Edit, Plus, Save, Shield } from "lucide-react";
 
 export const SettingsSection = ({ 
   accSettings = {}, 
@@ -7,9 +13,11 @@ export const SettingsSection = ({
   db, 
   appId,
   ownerConfig,
-  adminSession
+  adminSession,
+  admT,
+  adminLang
 }) => {
-  const [activeTab, setActiveTab] = useState("accounting"); // accounting | accounts | general
+  const [activeTab, setActiveTab] = useState("accounting");
 
   // Accounting settings
   const [cashAccount, setCashAccount] = useState("");
@@ -23,6 +31,7 @@ export const SettingsSection = ({
   const [newAccountCode, setNewAccountCode] = useState("");
   const [newAccountName, setNewAccountName] = useState("");
   const [newAccountType, setNewAccountType] = useState("asset");
+  const [isGolden, setIsGolden] = useState(false);
   const [editingAccountId, setEditingAccountId] = useState(null);
 
   // General settings
@@ -64,48 +73,60 @@ export const SettingsSection = ({
         },
         { merge: true }
       );
-      alert("تم حفظ الإعدادات بنجاح");
+      alert(admT?.success || "تم حفظ الإعدادات بنجاح");
     } catch (e) {
       console.error(e);
-      alert("حدث خطأ أثناء الحفظ");
+      alert(admT?.errorOccurred || "حدث خطأ أثناء الحفظ");
     }
+  };
+
+  const resetAccountForm = () => {
+    setNewAccountCode("");
+    setNewAccountName("");
+    setNewAccountType("asset");
+    setIsGolden(false);
+    setEditingAccountId(null);
   };
 
   const handleAddAccount = async () => {
     if (!newAccountCode || !newAccountName) {
-      alert("الرجاء ملء جميع الحقول");
+      alert(admT?.fillAllFields || "الرجاء ملء جميع الحقول");
       return;
     }
 
     try {
+      const accountData = {
+        code: newAccountCode,
+        name: newAccountName,
+        type: newAccountType,
+        key: newAccountCode,
+        balance: 0,
+        isGolden: isGolden,
+        isDeleted: false,
+        updatedAt: Date.now(),
+        updatedBy: adminSession?.username || "unknown",
+      };
+
       if (editingAccountId) {
         await updateDoc(
           doc(db, "artifacts", appId, "public", "data", "accounts", editingAccountId),
-          {
-            code: newAccountCode,
-            name: newAccountName,
-            type: newAccountType,
-            updatedAt: Date.now(),
-          }
+          accountData
         );
       } else {
-        await addDoc(collection(db, "artifacts", appId, "public", "data", "accounts"), {
-          code: newAccountCode,
-          name: newAccountName,
-          type: newAccountType,
-          key: newAccountCode,
-          balance: 0,
-          createdAt: Date.now(),
-        });
+        await addDoc(
+          collection(db, "artifacts", appId, "public", "data", "accounts"), 
+          {
+            ...accountData,
+            createdAt: Date.now(),
+            createdBy: adminSession?.username || "unknown",
+          }
+        );
       }
 
-      setNewAccountCode("");
-      setNewAccountName("");
-      setNewAccountType("asset");
-      setEditingAccountId(null);
+      resetAccountForm();
     } catch (e) {
       console.error(e);
-      alert("حدث خطأ أثناء إضافة الحساب");
+      alert(admT?.errorOccurred || "حدث خطأ");
     }
   };
 
@@ -114,22 +135,23 @@ export const SettingsSection = ({
     setNewAccountCode(account.code || "");
     setNewAccountName(account.name || "");
     setNewAccountType(account.type || "asset");
+    setIsGolden(account.isGolden || false);
   };
 
   const handleDeleteAccount = async (id) => {
-    if (!confirm("هل أنت متأكد من حذف هذا الحساب؟")) return;
+    if (!confirm(admT?.confirmDelete || "هل أنت متأكد؟")) return;
 
     try {
       await deleteDoc(doc(db, "artifacts", appId, "public", "data", "accounts", id));
     } catch (e) {
       console.error(e);
-      alert("حدث خطأ أثناء الحذف");
+      alert(admT?.errorOccurred || "حدث خطأ");
     }
   };
 
   const handleSaveGeneral = async () => {
     if (adminSession?.role !== "owner") {
-      alert("فقط المالك يمكنه تعديل هذه الإعدادات");
+      alert(adminLang === "ar" ? "فقط المالك" : "Owner only");
       return;
     }
 
@@ -143,313 +165,131 @@ export const SettingsSection = ({
         },
         { merge: true }
       );
-      alert("تم حفظ الإعدادات بنجاح");
+      alert(admT?.success || "نجح");
     } catch (e) {
       console.error(e);
-      alert("حدث خطأ أثناء الحفظ");
+      alert(admT?.errorOccurred || "خطأ");
     }
   };
 
+  const getTypeLabel = (type) => {
+    const labels = {
+      ar: { asset: "أصول", liability: "خصوم", equity: "حقوق ملكية", revenue: "إيرادات", expense: "مصروفات" },
+      tr: { asset: "Varlık", liability: "Yükümlülük", equity: "Özkaynak", revenue: "Gelir", expense: "Gider" },
+      en: { asset: "Asset", liability: "Liability", equity: "Equity", revenue: "Revenue", expense: "Expense" }
+    };
+    return labels[adminLang]?.[type] || type;
+  };
+
+  const activeAccounts = accounts.filter(a => !a.isDeleted);
+
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-black">⚙️ الإعدادات</h2>
+      <h2 className="text-xl font-black flex items-center gap-2">
+        <Settings size={24} />
+        {admT?.settingsSection || "الإعدادات"}
+      </h2>
 
       {/* Tabs */}
       <div className="flex gap-2 bg-white p-2 rounded-2xl border">
         <button
           onClick={() => setActiveTab("accounting")}
-          className={`flex-1 py-2 rounded-xl font-black transition-all ${
-            activeTab === "accounting"
-              ? "bg-slate-950 text-white"
-              : "bg-slate-50 text-slate-700"
-          }`}
+          className={`flex-1 py-3 rounded-xl font-black ${activeTab === "accounting" ? "bg-slate-950 text-white" : "bg-slate-50 text-slate-700"}`}
         >
-          إعدادات المحاسبة
+          {admT?.accountingSettings || "المحاسبة"}
         </button>
         <button
           onClick={() => setActiveTab("accounts")}
-          className={`flex-1 py-2 rounded-xl font-black transition-all ${
-            activeTab === "accounts"
-              ? "bg-slate-950 text-white"
-              : "bg-slate-50 text-slate-700"
-          }`}
+          className={`flex-1 py-3 rounded-xl font-black ${activeTab === "accounts" ? "bg-slate-950 text-white" : "bg-slate-50 text-slate-700"}`}
         >
-          دليل الحسابات
+          {admT?.chartOfAccounts || "الحسابات"}
         </button>
         {adminSession?.role === "owner" && (
           <button
             onClick={() => setActiveTab("general")}
-            className={`flex-1 py-2 rounded-xl font-black transition-all ${
-              activeTab === "general"
-                ? "bg-slate-950 text-white"
-                : "bg-slate-50 text-slate-700"
-            }`}
+            className={`flex-1 py-3 rounded-xl font-black ${activeTab === "general" ? "bg-slate-950 text-white" : "bg-slate-50 text-slate-700"}`}
           >
-            إعدادات عامة
+            {admT?.generalSettings || "عام"}
           </button>
         )}
       </div>
 
-      {/* Accounting Settings Tab */}
+      {/* Content */}
       {activeTab === "accounting" && (
         <div className="bg-white p-6 rounded-2xl border space-y-4">
-          <h3 className="font-black mb-4">الحسابات الافتراضية</h3>
-
           <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-bold mb-2">حساب الصندوق</label>
-              <select
-                value={cashAccount}
-                onChange={(e) => setCashAccount(e.target.value)}
-                className="w-full p-3 rounded-xl border font-bold"
-              >
-                <option value="">اختر الحساب</option>
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.key}>
-                    {acc.code} - {acc.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold mb-2">حساب البنك</label>
-              <select
-                value={bankAccount}
-                onChange={(e) => setBankAccount(e.target.value)}
-                className="w-full p-3 rounded-xl border font-bold"
-              >
-                <option value="">اختر الحساب</option>
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.key}>
-                    {acc.code} - {acc.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold mb-2">حساب المبيعات</label>
-              <select
-                value={salesAccount}
-                onChange={(e) => setSalesAccount(e.target.value)}
-                className="w-full p-3 rounded-xl border font-bold"
-              >
-                <option value="">اختر الحساب</option>
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.key}>
-                    {acc.code} - {acc.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold mb-2">حساب الضريبة</label>
-              <select
-                value={vatOutputAccount}
-                onChange={(e) => setVatOutputAccount(e.target.value)}
-                className="w-full p-3 rounded-xl border font-bold"
-              >
-                <option value="">اختر الحساب</option>
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.key}>
-                    {acc.code} - {acc.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold mb-2">حساب العملاء</label>
-              <select
-                value={arAccount}
-                onChange={(e) => setArAccount(e.target.value)}
-                className="w-full p-3 rounded-xl border font-bold"
-              >
-                <option value="">اختر الحساب</option>
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.key}>
-                    {acc.code} - {acc.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold mb-2">حساب الموردين</label>
-              <select
-                value={apAccount}
-                onChange={(e) => setApAccount(e.target.value)}
-                className="w-full p-3 rounded-xl border font-bold"
-              >
-                <option value="">اختر الحساب</option>
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={acc.key}>
-                    {acc.code} - {acc.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {[
+              { label: admT?.cashAccount || "الكاش", value: cashAccount, setter: setCashAccount },
+              { label: admT?.bankAccount || "البنك", value: bankAccount, setter: setBankAccount },
+              { label: admT?.salesAccount || "المبيعات", value: salesAccount, setter: setSalesAccount },
+              { label: admT?.vatOutputAccount || "الضريبة", value: vatOutputAccount, setter: setVatOutputAccount },
+              { label: admT?.arAccount || "المدينين", value: arAccount, setter: setArAccount },
+              { label: admT?.apAccount || "الدائنين", value: apAccount, setter: setApAccount }
+            ].map((field, idx) => (
+              <div key={idx}>
+                <label className="block text-sm font-bold mb-2">{field.label}</label>
+                <select value={field.value} onChange={(e) => field.setter(e.target.value)} className="w-full p-3 rounded-xl border font-bold">
+                  <option value="">--</option>
+                  {activeAccounts.map(acc => <option key={acc.id} value={acc.code}>{acc.code} - {acc.name}</option>)}
+                </select>
+              </div>
+            ))}
           </div>
-
-          <button
-            onClick={handleSaveAccounting}
-            className="w-full py-3 rounded-xl bg-emerald-600 text-white font-black"
-          >
-            حفظ الإعدادات
+          <button onClick={handleSaveAccounting} className="px-8 py-3 rounded-xl bg-emerald-600 text-white font-black flex items-center gap-2">
+            <Save size={18} /> {admT?.save || "حفظ"}
           </button>
         </div>
       )}
 
-      {/* Accounts Tab */}
       {activeTab === "accounts" && (
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-2xl border space-y-4">
-            <h3 className="font-black">إضافة حساب جديد</h3>
-
             <div className="grid md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-bold mb-2">رمز الحساب</label>
-                <input
-                  type="text"
-                  value={newAccountCode}
-                  onChange={(e) => setNewAccountCode(e.target.value)}
-                  placeholder="1001"
-                  className="w-full p-3 rounded-xl border font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold mb-2">اسم الحساب</label>
-                <input
-                  type="text"
-                  value={newAccountName}
-                  onChange={(e) => setNewAccountName(e.target.value)}
-                  placeholder="النقدية"
-                  className="w-full p-3 rounded-xl border font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold mb-2">نوع الحساب</label>
-                <select
-                  value={newAccountType}
-                  onChange={(e) => setNewAccountType(e.target.value)}
-                  className="w-full p-3 rounded-xl border font-bold"
-                >
-                  <option value="asset">أصل</option>
-                  <option value="liability">خصم</option>
-                  <option value="equity">حقوق ملكية</option>
-                  <option value="revenue">إيراد</option>
-                  <option value="expense">مصروف</option>
-                </select>
-              </div>
+              <input type="text" value={newAccountCode} onChange={(e) => setNewAccountCode(e.target.value)} placeholder="1010" className="p-3 rounded-xl border font-bold" />
+              <input type="text" value={newAccountName} onChange={(e) => setNewAccountName(e.target.value)} placeholder={admT?.accountName || "الاسم"} className="p-3 rounded-xl border font-bold" />
+              <select value={newAccountType} onChange={(e) => setNewAccountType(e.target.value)} className="p-3 rounded-xl border font-bold">
+                {["asset", "liability", "equity", "revenue", "expense"].map(t => <option key={t} value={t}>{getTypeLabel(t)}</option>)}
+              </select>
             </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={handleAddAccount}
-                className="flex-1 py-3 rounded-xl bg-emerald-600 text-white font-black"
-              >
-                {editingAccountId ? "حفظ التعديلات" : "إضافة الحساب"}
-              </button>
-              {editingAccountId && (
-                <button
-                  onClick={() => {
-                    setEditingAccountId(null);
-                    setNewAccountCode("");
-                    setNewAccountName("");
-                    setNewAccountType("asset");
-                  }}
-                  className="px-6 py-3 rounded-xl bg-slate-100 text-slate-700 font-black"
-                >
-                  إلغاء
-                </button>
-              )}
+            <div className="flex items-center gap-3">
+              <input type="checkbox" id="gold" checked={isGolden} onChange={(e) => setIsGolden(e.target.checked)} className="w-5 h-5" />
+              <label htmlFor="gold" className="font-bold flex items-center gap-2"><Star className="text-yellow-500" size={18} />{admT?.isGolden || "ذهبي"}</label>
             </div>
+            <button onClick={handleAddAccount} className="px-8 py-3 rounded-xl bg-emerald-600 text-white font-black"><Plus size={18} /> {admT?.save || "حفظ"}</button>
           </div>
-
-          <div className="bg-white rounded-2xl border overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="text-right p-4 font-black">الرمز</th>
-                  <th className="text-right p-4 font-black">الاسم</th>
-                  <th className="text-right p-4 font-black">النوع</th>
-                  <th className="text-right p-4 font-black">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {accounts.map((acc) => (
-                  <tr key={acc.id} className="border-t hover:bg-slate-50">
-                    <td className="p-4 font-bold">{acc.code}</td>
-                    <td className="p-4 font-bold">{acc.name}</td>
-                    <td className="p-4">
-                      <span className="px-2 py-1 rounded-lg bg-slate-100 text-xs font-bold">
-                        {acc.type === "asset" && "أصل"}
-                        {acc.type === "liability" && "خصم"}
-                        {acc.type === "equity" && "حقوق ملكية"}
-                        {acc.type === "revenue" && "إيراد"}
-                        {acc.type === "expense" && "مصروف"}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleEditAccount(acc)}
-                          className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold"
-                        >
-                          تعديل
-                        </button>
-                        <button
-                          onClick={() => handleDeleteAccount(acc.id)}
-                          className="text-sm bg-red-100 text-red-700 px-3 py-1 rounded-lg font-bold"
-                        >
-                          حذف
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          
+          <div className="bg-white p-6 rounded-2xl border space-y-2">
+            {activeAccounts.map(acc => (
+              <div key={acc.id} className={`flex items-center justify-between p-4 rounded-xl border-2 ${acc.isGolden ? "bg-yellow-50 border-yellow-400" : "bg-slate-50"}`}>
+                <div className="flex items-center gap-3">
+                  {acc.isGolden && <Star className="text-yellow-500" size={18} />}
+                  <div>
+                    <div className="font-black">{acc.code} - {acc.name}</div>
+                    <div className="text-xs font-bold text-slate-600">{getTypeLabel(acc.type)}</div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => handleEditAccount(acc)} className="p-2 rounded-lg bg-blue-100 text-blue-700"><Edit size={16} /></button>
+                  <button onClick={() => handleDeleteAccount(acc.id)} className="p-2 rounded-lg bg-red-100 text-red-700"><Trash2 size={16} /></button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* General Settings Tab */}
       {activeTab === "general" && adminSession?.role === "owner" && (
         <div className="bg-white p-6 rounded-2xl border space-y-4">
-          <h3 className="font-black mb-4">بيانات المالك</h3>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-bold mb-2">اسم المستخدم</label>
-              <input
-                type="text"
-                value={ownerUsername}
-                onChange={(e) => setOwnerUsername(e.target.value)}
-                className="w-full p-3 rounded-xl border font-bold"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold mb-2">كلمة المرور</label>
-              <input
-                type="password"
-                value={ownerPassword}
-                onChange={(e) => setOwnerPassword(e.target.value)}
-                className="w-full p-3 rounded-xl border font-bold"
-              />
-            </div>
+          <div className="flex items-center gap-2 mb-4">
+            <Shield className="text-orange-600" size={24} />
+            <h3 className="font-black">{admT?.generalSettings || "عام"}</h3>
           </div>
-
-          <button
-            onClick={handleSaveGeneral}
-            className="w-full py-3 rounded-xl bg-emerald-600 text-white font-black"
-          >
-            حفظ الإعدادات
+          <div className="grid md:grid-cols-2 gap-4">
+            <input type="text" value={ownerUsername} onChange={(e) => setOwnerUsername(e.target.value)} placeholder={admT?.ownerUsername || "المستخدم"} className="p-3 rounded-xl border font-bold" />
+            <input type="password" value={ownerPassword} onChange={(e) => setOwnerPassword(e.target.value)} placeholder={admT?.ownerPassword || "الكلمة"} className="p-3 rounded-xl border font-bold" />
+          </div>
+          <button onClick={handleSaveGeneral} className="px-8 py-3 rounded-xl bg-orange-600 text-white font-black flex items-center gap-2">
+            <Save size={18} /> {admT?.save || "حفظ"}
           </button>
         </div>
       )}

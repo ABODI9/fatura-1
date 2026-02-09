@@ -1,78 +1,132 @@
-import React, { useMemo } from "react";
-import { getAccountBalances } from "../../services/accounting";
+// ===============================
+// BalanceSheetSection.jsx - محسّن
+// Features: Full Translation
+// ===============================
 
-export const BalanceSheetSection = ({ journalEntries, accSettings, CURRENCY }) => {
-  const balances = useMemo(
-    () => getAccountBalances(journalEntries),
-    [journalEntries]
-  );
+import React from "react";
+import { Scale } from "lucide-react";
 
-  const assets = [
-    { id: accSettings?.accounts?.cash || "cash", name: "Cash / صندوق" },
-    { id: accSettings?.accounts?.bank || "bank", name: "Bank / بنك" },
-    { id: accSettings?.accounts?.ar || "ar", name: "Accounts Receivable / عملاء" },
-  ];
+export const BalanceSheetSection = ({ admT, adminLang, accounts = [] }) => {
+  const activeAccounts = accounts.filter(a => !a.isDeleted);
+  
+  const assets = activeAccounts.filter(a => a.type === "asset");
+  const liabilities = activeAccounts.filter(a => a.type === "liability");
+  const equity = activeAccounts.filter(a => a.type === "equity");
 
-  const liabilities = [
-    { id: accSettings?.accounts?.ap || "ap", name: "Accounts Payable / موردين" },
-    {
-      id: accSettings?.accounts?.vatOutput || "vat_output",
-      name: "VAT Output / ضريبة",
-    },
-  ];
-
-  const totalAssets = assets.reduce(
-    (s, a) => s + Math.max(0, balances[a.id] || 0),
-    0
-  );
-
-  const totalLiabilities = liabilities.reduce(
-    (s, l) => s + Math.max(0, -(balances[l.id] || 0)),
-    0
-  );
-
-  const equity = totalAssets - totalLiabilities;
+  const totalAssets = assets.reduce((sum, a) => sum + Number(a.balance || 0), 0);
+  const totalLiabilities = liabilities.reduce((sum, a) => sum + Number(a.balance || 0), 0);
+  const totalEquity = equity.reduce((sum, a) => sum + Number(a.balance || 0), 0);
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-black">📊 الميزانية العمومية</h2>
+      <h2 className="text-xl font-black flex items-center gap-2">
+        <Scale size={24} />
+        {admT?.balanceSheetSection || "الميزانية"}
+      </h2>
 
       <div className="grid md:grid-cols-2 gap-6">
-        {/* الأصول */}
-        <div className="bg-white p-4 rounded-2xl border">
-          <div className="font-black mb-3">الأصول</div>
-          {assets.map((a) => (
-            <div key={a.id} className="flex justify-between py-1 font-bold">
-              <span>{a.name}</span>
-              <span dir="ltr">{(balances[a.id] || 0).toFixed(2)}</span>
+        {/* Assets */}
+        <div className="bg-white p-6 rounded-2xl border">
+          <h3 className="font-black text-lg mb-4 text-blue-900">
+            {adminLang === "ar" ? "الأصول" : adminLang === "tr" ? "Varlıklar" : "Assets"}
+          </h3>
+          {assets.length === 0 ? (
+            <p className="text-sm text-slate-500 font-bold">
+              {admT?.noData || "لا توجد بيانات"}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {assets.map(acc => (
+                <div key={acc.id} className="flex justify-between items-center p-3 bg-blue-50 rounded-xl">
+                  <span className="font-bold text-sm">{acc.name}</span>
+                  <span className="font-black">{Number(acc.balance || 0).toFixed(2)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between items-center p-3 bg-blue-600 text-white rounded-xl mt-4">
+                <span className="font-black">{admT?.total || "المجموع"}</span>
+                <span className="font-black text-lg">{totalAssets.toFixed(2)}</span>
+              </div>
             </div>
-          ))}
-          <div className="border-t mt-2 pt-2 flex justify-between font-black">
-            <span>إجمالي الأصول</span>
-            <span dir="ltr">{totalAssets.toFixed(2)}</span>
-          </div>
+          )}
         </div>
 
-        {/* الخصوم وحقوق الملكية */}
-        <div className="bg-white p-4 rounded-2xl border">
-          <div className="font-black mb-3">الخصوم</div>
-          {liabilities.map((l) => (
-            <div key={l.id} className="flex justify-between py-1 font-bold">
-              <span>{l.name}</span>
-              <span dir="ltr">{Math.abs(balances[l.id] || 0).toFixed(2)}</span>
-            </div>
-          ))}
-
-          <div className="flex justify-between py-2 font-bold">
-            <span>حقوق الملكية</span>
-            <span dir="ltr">{equity.toFixed(2)}</span>
+        {/* Liabilities & Equity */}
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-2xl border">
+            <h3 className="font-black text-lg mb-4 text-red-900">
+              {adminLang === "ar" ? "الخصوم" : adminLang === "tr" ? "Yükümlülükler" : "Liabilities"}
+            </h3>
+            {liabilities.length === 0 ? (
+              <p className="text-sm text-slate-500 font-bold">{admT?.noData || "لا توجد بيانات"}</p>
+            ) : (
+              <div className="space-y-2">
+                {liabilities.map(acc => (
+                  <div key={acc.id} className="flex justify-between items-center p-3 bg-red-50 rounded-xl">
+                    <span className="font-bold text-sm">{acc.name}</span>
+                    <span className="font-black">{Number(acc.balance || 0).toFixed(2)}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between items-center p-3 bg-red-600 text-white rounded-xl mt-4">
+                  <span className="font-black">{admT?.total || "المجموع"}</span>
+                  <span className="font-black text-lg">{totalLiabilities.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="border-t mt-2 pt-2 flex justify-between font-black">
-            <span>إجمالي الخصوم + حقوق الملكية</span>
-            <span dir="ltr">{(totalLiabilities + equity).toFixed(2)}</span>
+          <div className="bg-white p-6 rounded-2xl border">
+            <h3 className="font-black text-lg mb-4 text-emerald-900">
+              {adminLang === "ar" ? "حقوق الملكية" : adminLang === "tr" ? "Özkaynak" : "Equity"}
+            </h3>
+            {equity.length === 0 ? (
+              <p className="text-sm text-slate-500 font-bold">{admT?.noData || "لا توجد بيانات"}</p>
+            ) : (
+              <div className="space-y-2">
+                {equity.map(acc => (
+                  <div key={acc.id} className="flex justify-between items-center p-3 bg-emerald-50 rounded-xl">
+                    <span className="font-bold text-sm">{acc.name}</span>
+                    <span className="font-black">{Number(acc.balance || 0).toFixed(2)}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between items-center p-3 bg-emerald-600 text-white rounded-xl mt-4">
+                  <span className="font-black">{admT?.total || "المجموع"}</span>
+                  <span className="font-black text-lg">{totalEquity.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
+      </div>
+
+      {/* Balance Check */}
+      <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-6 rounded-2xl text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-black text-lg mb-2">
+              {adminLang === "ar" ? "المعادلة المحاسبية" : adminLang === "tr" ? "Muhasebe Denklemi" : "Accounting Equation"}
+            </h3>
+            <p className="text-sm text-slate-300 font-bold">
+              {adminLang === "ar" 
+                ? "الأصول = الخصوم + حقوق الملكية" 
+                : adminLang === "tr" 
+                ? "Varlıklar = Yükümlülükler + Özkaynak" 
+                : "Assets = Liabilities + Equity"}
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="text-3xl font-black">{totalAssets.toFixed(2)}</div>
+            <div className="text-sm text-slate-300 font-bold">
+              = {(totalLiabilities + totalEquity).toFixed(2)}
+            </div>
+          </div>
+        </div>
+        {Math.abs(totalAssets - (totalLiabilities + totalEquity)) > 0.01 && (
+          <div className="mt-4 p-3 bg-red-500 rounded-xl">
+            <p className="text-sm font-black">
+              ⚠️ {adminLang === "ar" ? "الميزانية غير متوازنة!" : adminLang === "tr" ? "Bilanço dengeli değil!" : "Balance sheet not balanced!"}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

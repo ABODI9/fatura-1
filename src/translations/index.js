@@ -1,10 +1,14 @@
+// ===============================
+// Complete Translations (AR, TR, EN)
+// ===============================
+
 export const translations = {
   ar: {
-    // Brand
+    // ===== Brand =====
     brand: "Wingi",
     portalHint: "اختر وضع الدخول",
     
-    // Auth
+    // ===== Auth =====
     admin: "الإدارة",
     customer: "العملاء",
     adminLogin: "تسجيل دخول الإدارة",
@@ -17,19 +21,19 @@ export const translations = {
     createAccount: "إنشاء حساب",
     goPortal: "العودة للبوابة",
     
-    // Table Selection
+    // ===== Customer =====
     selectTable: "اختر طاولتك للبدء",
     startOrder: "ابدأ طلبك",
-    
-    // Menu
+    table: "طاولة",
     menu: "قائمة الطعام",
     changeTable: "تغيير الطاولة",
     cart: "السلة",
     outOfStock: "نفذت الكمية",
     offer: "عرض",
     addToCart: "إضافة للسلة",
+    all: "الكل",
     
-    // Cart
+    // ===== Cart =====
     yourCart: "سلتك",
     empty: "فارغة",
     remove: "حذف",
@@ -42,27 +46,199 @@ export const translations = {
     tax: "الضريبة",
     total: "المجموع الكلي",
     completeOrder: "إتمام الطلب",
+    discount: "الخصم",
     
-    // Order Success
+    // ===== Order Success =====
     orderSuccess: "تم إرسال طلبك بنجاح!",
     backToMenu: "العودة للمنيو",
+    yourTableNumber: "طاولتك رقم",
     
-    // Notes
+    // ===== Notes =====
     addNotes: "إضافة ملاحظات",
     notes: "ملاحظات",
     skip: "تخطي",
+    addNote: "إضافة ملاحظة",
     
-    // Errors
+    // ===== Errors =====
     fillAllFields: "الرجاء ملء جميع الحقول",
     wrongCredentials: "اسم المستخدم أو كلمة المرور خاطئة",
     wrongOwnerPin: "كلمة سر المالك خاطئة",
     usernameExists: "اسم المستخدم موجود مسبقاً",
     errorOccurred: "حدث خطأ",
+    
+    // ===== Admin Sections =====
+    menuSection: "قائمة الطعام",
+    ordersSection: "الطلبات",
+    inventorySection: "المخزون",
+    financeSection: "المالية",
+    accountingSection: "المحاسبة",
+    reportsSection: "التقارير",
+    balanceSheetSection: "الميزانية",
+    cashFlowSection: "التدفق النقدي",
+    invoicesSection: "الفواتير",
+    customersSection: "العملاء",
+    vendorsSection: "الموردين",
+    billsSection: "فواتير المشتريات",
+    settingsSection: "الإعدادات",
+    vipSection: "VIP",
+    
+    // ===== Menu Section =====
+    addNewItem: "إضافة منتج جديد",
+    editItem: "تعديل منتج",
+    nameAr: "الاسم (عربي)",
+    nameEn: "الاسم (English)",
+    nameTr: "الاسم (Türkçe)",
+    price: "السعر",
+    category: "التصنيف",
+    categoryAr: "التصنيف (عربي)",
+    categoryEn: "التصنيف (English)",
+    categoryTr: "التصنيف (Türkçe)",
+    imageUrl: "رابط الصورة",
+    description: "الوصف",
+    descriptionAr: "الوصف (عربي)",
+    descriptionEn: "الوصف (English)",
+    descriptionTr: "الوصف (Türkçe)",
+    isOffer: "عرض خاص",
+    save: "حفظ",
+    saveChanges: "حفظ التعديلات",
+    cancel: "إلغاء",
+    edit: "تعديل",
+    delete: "حذف",
+    restore: "استعادة",
+    deleteReason: "سبب الحذف",
+    deleted: "محذوف",
+    active: "نشط",
+    
+    // ===== Orders Section =====
+    activeOrders: "الطلبات النشطة",
+    oldOrders: "الطلبات القديمة",
+    searchOrders: "بحث",
+    from: "من",
+    to: "إلى",
+    noOrders: "لا يوجد طلبات هنا",
+    tableNumber: "المستلم/الطاولة",
+    order: "طلب",
+    status: "الحالة",
+    new: "جديد",
+    prepared: "جاهز",
+    cancelled: "ملغي",
+    markPrepared: "تجهيز",
+    markCancelled: "إلغاء",
+    viewReceipt: "عرض الإيصال",
+    printInvoice: "طباعة الفاتورة",
+    items: "العناصر",
+    quantity: "الكمية",
+    amount: "المبلغ",
+    payMethod: "طريقة الدفع",
+    
+    // ===== Inventory Section =====
+    addInventoryItem: "إضافة صنف للمخزون",
+    inventoryName: "اسم الصنف",
+    unit: "الوحدة",
+    quantityAvailable: "الكمية المتوفرة",
+    baselineQuantity: "الكمية الأساسية",
+    lowStockPercent: "نسبة التنبيه للمخزون المنخفض",
+    alerts: "التنبيهات",
+    outOfStockItems: "أصناف نفذت",
+    lowStockItems: "أصناف منخفضة",
+    
+    // ===== Accounting Section =====
+    goldenAccounts: "الحسابات الذهبية",
+    regularAccounts: "الحسابات العادية",
+    accountCode: "رمز الحساب",
+    accountName: "اسم الحساب",
+    accountType: "نوع الحساب",
+    balance: "الرصيد",
+    isGolden: "حساب ذهبي",
+    asset: "أصول",
+    liability: "خصوم",
+    equity: "حقوق ملكية",
+    revenue: "إيرادات",
+    expense: "مصروفات",
+    journalEntry: "قيد يومية",
+    debit: "مدين",
+    credit: "دائن",
+    date: "التاريخ",
+    reference: "المرجع",
+    
+    // ===== Finance Section =====
+    taxPercent: "نسبة الضريبة %",
+    cashDiscountPercent: "نسبة خصم الكاش %",
+    saveSettings: "حفظ الإعدادات",
+    
+    // ===== Customers Section =====
+    addNewCustomer: "إضافة عميل جديد",
+    customerName: "اسم العميل",
+    email: "البريد الإلكتروني",
+    phone: "الهاتف",
+    address: "العنوان",
+    
+    // ===== Vendors Section =====
+    addNewVendor: "إضافة مورد جديد",
+    vendorName: "اسم المورد",
+    contactPerson: "جهة الاتصال",
+    
+    // ===== Invoices & Bills =====
+    addNewInvoice: "إضافة فاتورة جديدة",
+    addNewBill: "إضافة فاتورة مشتريات",
+    invoiceNumber: "رقم الفاتورة",
+    billNumber: "رقم الفاتورة",
+    invoiceDate: "تاريخ الفاتورة",
+    billDate: "تاريخ الفاتورة",
+    dueDate: "تاريخ الاستحقاق",
+    customer: "العميل",
+    vendor: "المورد",
+    addItem: "إضافة عنصر",
+    pending: "قيد الانتظار",
+    paid: "مدفوعة",
+    overdue: "متأخرة",
+    
+    // ===== Settings =====
+    accountingSettings: "إعدادات المحاسبة",
+    chartOfAccounts: "دليل الحسابات",
+    generalSettings: "الإعدادات العامة",
+    cashAccount: "حساب الكاش",
+    bankAccount: "حساب البنك",
+    salesAccount: "حساب المبيعات",
+    vatOutputAccount: "حساب ضريبة المخرجات",
+    arAccount: "حساب المدينين",
+    apAccount: "حساب الدائنين",
+    ownerUsername: "اسم المستخدم للمالك",
+    ownerPassword: "كلمة المرور للمالك",
+    
+    // ===== Common =====
+    search: "بحث",
+    filter: "تصفية",
+    apply: "تطبيق",
+    reset: "إعادة تعيين",
+    close: "إغلاق",
+    yes: "نعم",
+    no: "لا",
+    confirm: "تأكيد",
+    confirmDelete: "هل أنت متأكد من الحذف؟",
+    confirmRestore: "هل تريد استعادة هذا العنصر؟",
+    success: "نجح",
+    error: "خطأ",
+    loading: "جاري التحميل...",
+    noData: "لا توجد بيانات",
+    
+    // ===== Delete Tracking =====
+    deletedItems: "العناصر المحذوفة",
+    showDeleted: "إظهار المحذوفات",
+    hideDeleted: "إخفاء المحذوفات",
+    deletionDate: "تاريخ الحذف",
+    deletedBy: "تم الحذف بواسطة",
+    reasonForDeletion: "سبب الحذف",
+    enterReason: "أدخل سبب الحذف",
+    required: "مطلوب",
   },
   
   tr: {
+    // ===== Marka =====
     brand: "Wingi",
     portalHint: "Giriş modunu seçin",
+    
+    // ===== Kimlik Doğrulama =====
     admin: "Yönetim",
     customer: "Müşteriler",
     adminLogin: "Yönetici Girişi",
@@ -74,14 +250,20 @@ export const translations = {
     logout: "Çıkış",
     createAccount: "Hesap Oluştur",
     goPortal: "Portala Dön",
+    
+    // ===== Müşteri =====
     selectTable: "Başlamak için masanızı seçin",
     startOrder: "Siparişinizi Başlatın",
+    table: "Masa",
     menu: "Menü",
     changeTable: "Masa Değiştir",
     cart: "Sepet",
-    outOfStock: "Stok Yok",
+    outOfStock: "Stokta Yok",
     offer: "Teklif",
     addToCart: "Sepete Ekle",
+    all: "Hepsi",
+    
+    // ===== Sepet =====
     yourCart: "Sepetiniz",
     empty: "Boş",
     remove: "Kaldır",
@@ -94,21 +276,199 @@ export const translations = {
     tax: "Vergi",
     total: "Toplam",
     completeOrder: "Siparişi Tamamla",
+    discount: "İndirim",
+    
+    // ===== Sipariş Başarılı =====
     orderSuccess: "Siparişiniz başarıyla gönderildi!",
     backToMenu: "Menüye Dön",
+    yourTableNumber: "Masa numaranız",
+    
+    // ===== Notlar =====
     addNotes: "Not Ekle",
     notes: "Notlar",
     skip: "Atla",
+    addNote: "Not Ekle",
+    
+    // ===== Hatalar =====
     fillAllFields: "Lütfen tüm alanları doldurun",
     wrongCredentials: "Kullanıcı adı veya şifre yanlış",
     wrongOwnerPin: "Sahip PIN yanlış",
     usernameExists: "Kullanıcı adı zaten var",
     errorOccurred: "Bir hata oluştu",
+    
+    // ===== Yönetim Bölümleri =====
+    menuSection: "Menü",
+    ordersSection: "Siparişler",
+    inventorySection: "Envanter",
+    financeSection: "Finans",
+    accountingSection: "Muhasebe",
+    reportsSection: "Raporlar",
+    balanceSheetSection: "Bilanço",
+    cashFlowSection: "Nakit Akışı",
+    invoicesSection: "Faturalar",
+    customersSection: "Müşteriler",
+    vendorsSection: "Tedarikçiler",
+    billsSection: "Satın Alma Faturaları",
+    settingsSection: "Ayarlar",
+    vipSection: "VIP",
+    
+    // ===== Menü Bölümü =====
+    addNewItem: "Yeni Ürün Ekle",
+    editItem: "Ürün Düzenle",
+    nameAr: "İsim (عربي)",
+    nameEn: "İsim (English)",
+    nameTr: "İsim (Türkçe)",
+    price: "Fiyat",
+    category: "Kategori",
+    categoryAr: "Kategori (عربي)",
+    categoryEn: "Kategori (English)",
+    categoryTr: "Kategori (Türkçe)",
+    imageUrl: "Resim URL",
+    description: "Açıklama",
+    descriptionAr: "Açıklama (عربي)",
+    descriptionEn: "Açıklama (English)",
+    descriptionTr: "Açıklama (Türkçe)",
+    isOffer: "Özel Teklif",
+    save: "Kaydet",
+    saveChanges: "Değişiklikleri Kaydet",
+    cancel: "İptal",
+    edit: "Düzenle",
+    delete: "Sil",
+    restore: "Geri Yükle",
+    deleteReason: "Silme Nedeni",
+    deleted: "Silindi",
+    active: "Aktif",
+    
+    // ===== Siparişler Bölümü =====
+    activeOrders: "Aktif Siparişler",
+    oldOrders: "Eski Siparişler",
+    searchOrders: "Ara",
+    from: "Başlangıç",
+    to: "Bitiş",
+    noOrders: "Sipariş yok",
+    tableNumber: "Alıcı/Masa",
+    order: "Sipariş",
+    status: "Durum",
+    new: "Yeni",
+    prepared: "Hazır",
+    cancelled: "İptal Edildi",
+    markPrepared: "Hazırla",
+    markCancelled: "İptal Et",
+    viewReceipt: "Makbuzu Görüntüle",
+    printInvoice: "Faturayı Yazdır",
+    items: "Ürünler",
+    quantity: "Miktar",
+    amount: "Tutar",
+    payMethod: "Ödeme Yöntemi",
+    
+    // ===== Envanter Bölümü =====
+    addInventoryItem: "Envanter Öğesi Ekle",
+    inventoryName: "Öğe Adı",
+    unit: "Birim",
+    quantityAvailable: "Mevcut Miktar",
+    baselineQuantity: "Temel Miktar",
+    lowStockPercent: "Düşük Stok Uyarı Yüzdesi",
+    alerts: "Uyarılar",
+    outOfStockItems: "Stokta Olmayan Öğeler",
+    lowStockItems: "Düşük Stok Öğeleri",
+    
+    // ===== Muhasebe Bölümü =====
+    goldenAccounts: "Altın Hesaplar",
+    regularAccounts: "Normal Hesaplar",
+    accountCode: "Hesap Kodu",
+    accountName: "Hesap Adı",
+    accountType: "Hesap Türü",
+    balance: "Bakiye",
+    isGolden: "Altın Hesap",
+    asset: "Varlık",
+    liability: "Yükümlülük",
+    equity: "Özkaynak",
+    revenue: "Gelir",
+    expense: "Gider",
+    journalEntry: "Yevmiye Kaydı",
+    debit: "Borç",
+    credit: "Alacak",
+    date: "Tarih",
+    reference: "Referans",
+    
+    // ===== Finans Bölümü =====
+    taxPercent: "Vergi Yüzdesi %",
+    cashDiscountPercent: "Nakit İndirim Yüzdesi %",
+    saveSettings: "Ayarları Kaydet",
+    
+    // ===== Müşteriler Bölümü =====
+    addNewCustomer: "Yeni Müşteri Ekle",
+    customerName: "Müşteri Adı",
+    email: "E-posta",
+    phone: "Telefon",
+    address: "Adres",
+    
+    // ===== Tedarikçiler Bölümü =====
+    addNewVendor: "Yeni Tedarikçi Ekle",
+    vendorName: "Tedarikçi Adı",
+    contactPerson: "İletişim Kişisi",
+    
+    // ===== Faturalar =====
+    addNewInvoice: "Yeni Fatura Ekle",
+    addNewBill: "Yeni Satın Alma Faturası Ekle",
+    invoiceNumber: "Fatura Numarası",
+    billNumber: "Fatura Numarası",
+    invoiceDate: "Fatura Tarihi",
+    billDate: "Fatura Tarihi",
+    dueDate: "Vade Tarihi",
+    customer: "Müşteri",
+    vendor: "Tedarikçi",
+    addItem: "Öğe Ekle",
+    pending: "Beklemede",
+    paid: "Ödendi",
+    overdue: "Gecikmiş",
+    
+    // ===== Ayarlar =====
+    accountingSettings: "Muhasebe Ayarları",
+    chartOfAccounts: "Hesap Planı",
+    generalSettings: "Genel Ayarlar",
+    cashAccount: "Nakit Hesabı",
+    bankAccount: "Banka Hesabı",
+    salesAccount: "Satış Hesabı",
+    vatOutputAccount: "KDV Çıktı Hesabı",
+    arAccount: "Alacak Hesapları",
+    apAccount: "Borç Hesapları",
+    ownerUsername: "Sahip Kullanıcı Adı",
+    ownerPassword: "Sahip Şifresi",
+    
+    // ===== Ortak =====
+    search: "Ara",
+    filter: "Filtre",
+    apply: "Uygula",
+    reset: "Sıfırla",
+    close: "Kapat",
+    yes: "Evet",
+    no: "Hayır",
+    confirm: "Onayla",
+    confirmDelete: "Silmek istediğinizden emin misiniz?",
+    confirmRestore: "Bu öğeyi geri yüklemek istiyor musunuz?",
+    success: "Başarılı",
+    error: "Hata",
+    loading: "Yükleniyor...",
+    noData: "Veri yok",
+    
+    // ===== Silme Takibi =====
+    deletedItems: "Silinen Öğeler",
+    showDeleted: "Silinenleri Göster",
+    hideDeleted: "Silinenleri Gizle",
+    deletionDate: "Silme Tarihi",
+    deletedBy: "Silen Kullanıcı",
+    reasonForDeletion: "Silme Nedeni",
+    enterReason: "Silme nedenini girin",
+    required: "Gerekli",
   },
   
   en: {
+    // ===== Brand =====
     brand: "Wingi",
     portalHint: "Choose login mode",
+    
+    // ===== Auth =====
     admin: "Administration",
     customer: "Customers",
     adminLogin: "Admin Login",
@@ -120,14 +480,20 @@ export const translations = {
     logout: "Logout",
     createAccount: "Create Account",
     goPortal: "Back to Portal",
+    
+    // ===== Customer =====
     selectTable: "Select your table to start",
     startOrder: "Start Your Order",
+    table: "Table",
     menu: "Menu",
     changeTable: "Change Table",
     cart: "Cart",
     outOfStock: "Out of Stock",
     offer: "Offer",
     addToCart: "Add to Cart",
+    all: "All",
+    
+    // ===== Cart =====
     yourCart: "Your Cart",
     empty: "Empty",
     remove: "Remove",
@@ -140,15 +506,190 @@ export const translations = {
     tax: "Tax",
     total: "Total",
     completeOrder: "Complete Order",
+    discount: "Discount",
+    
+    // ===== Order Success =====
     orderSuccess: "Your order has been sent successfully!",
     backToMenu: "Back to Menu",
+    yourTableNumber: "Your table number",
+    
+    // ===== Notes =====
     addNotes: "Add Notes",
     notes: "Notes",
     skip: "Skip",
+    addNote: "Add Note",
+    
+    // ===== Errors =====
     fillAllFields: "Please fill all fields",
     wrongCredentials: "Username or password is incorrect",
     wrongOwnerPin: "Owner PIN is incorrect",
     usernameExists: "Username already exists",
     errorOccurred: "An error occurred",
+    
+    // ===== Admin Sections =====
+    menuSection: "Menu",
+    ordersSection: "Orders",
+    inventorySection: "Inventory",
+    financeSection: "Finance",
+    accountingSection: "Accounting",
+    reportsSection: "Reports",
+    balanceSheetSection: "Balance Sheet",
+    cashFlowSection: "Cash Flow",
+    invoicesSection: "Invoices",
+    customersSection: "Customers",
+    vendorsSection: "Vendors",
+    billsSection: "Purchase Bills",
+    settingsSection: "Settings",
+    vipSection: "VIP",
+    
+    // ===== Menu Section =====
+    addNewItem: "Add New Item",
+    editItem: "Edit Item",
+    nameAr: "Name (عربي)",
+    nameEn: "Name (English)",
+    nameTr: "Name (Türkçe)",
+    price: "Price",
+    category: "Category",
+    categoryAr: "Category (عربي)",
+    categoryEn: "Category (English)",
+    categoryTr: "Category (Türkçe)",
+    imageUrl: "Image URL",
+    description: "Description",
+    descriptionAr: "Description (عربي)",
+    descriptionEn: "Description (English)",
+    descriptionTr: "Description (Türkçe)",
+    isOffer: "Special Offer",
+    save: "Save",
+    saveChanges: "Save Changes",
+    cancel: "Cancel",
+    edit: "Edit",
+    delete: "Delete",
+    restore: "Restore",
+    deleteReason: "Deletion Reason",
+    deleted: "Deleted",
+    active: "Active",
+    
+    // ===== Orders Section =====
+    activeOrders: "Active Orders",
+    oldOrders: "Old Orders",
+    searchOrders: "Search",
+    from: "From",
+    to: "To",
+    noOrders: "No orders here",
+    tableNumber: "Receiver/Table",
+    order: "Order",
+    status: "Status",
+    new: "New",
+    prepared: "Prepared",
+    cancelled: "Cancelled",
+    markPrepared: "Prepare",
+    markCancelled: "Cancel",
+    viewReceipt: "View Receipt",
+    printInvoice: "Print Invoice",
+    items: "Items",
+    quantity: "Quantity",
+    amount: "Amount",
+    payMethod: "Payment Method",
+    
+    // ===== Inventory Section =====
+    addInventoryItem: "Add Inventory Item",
+    inventoryName: "Item Name",
+    unit: "Unit",
+    quantityAvailable: "Available Quantity",
+    baselineQuantity: "Baseline Quantity",
+    lowStockPercent: "Low Stock Warning %",
+    alerts: "Alerts",
+    outOfStockItems: "Out of Stock Items",
+    lowStockItems: "Low Stock Items",
+    
+    // ===== Accounting Section =====
+    goldenAccounts: "Golden Accounts",
+    regularAccounts: "Regular Accounts",
+    accountCode: "Account Code",
+    accountName: "Account Name",
+    accountType: "Account Type",
+    balance: "Balance",
+    isGolden: "Golden Account",
+    asset: "Asset",
+    liability: "Liability",
+    equity: "Equity",
+    revenue: "Revenue",
+    expense: "Expense",
+    journalEntry: "Journal Entry",
+    debit: "Debit",
+    credit: "Credit",
+    date: "Date",
+    reference: "Reference",
+    
+    // ===== Finance Section =====
+    taxPercent: "Tax Percentage %",
+    cashDiscountPercent: "Cash Discount %",
+    saveSettings: "Save Settings",
+    
+    // ===== Customers Section =====
+    addNewCustomer: "Add New Customer",
+    customerName: "Customer Name",
+    email: "Email",
+    phone: "Phone",
+    address: "Address",
+    
+    // ===== Vendors Section =====
+    addNewVendor: "Add New Vendor",
+    vendorName: "Vendor Name",
+    contactPerson: "Contact Person",
+    
+    // ===== Invoices & Bills =====
+    addNewInvoice: "Add New Invoice",
+    addNewBill: "Add New Purchase Bill",
+    invoiceNumber: "Invoice Number",
+    billNumber: "Bill Number",
+    invoiceDate: "Invoice Date",
+    billDate: "Bill Date",
+    dueDate: "Due Date",
+    customer: "Customer",
+    vendor: "Vendor",
+    addItem: "Add Item",
+    pending: "Pending",
+    paid: "Paid",
+    overdue: "Overdue",
+    
+    // ===== Settings =====
+    accountingSettings: "Accounting Settings",
+    chartOfAccounts: "Chart of Accounts",
+    generalSettings: "General Settings",
+    cashAccount: "Cash Account",
+    bankAccount: "Bank Account",
+    salesAccount: "Sales Account",
+    vatOutputAccount: "VAT Output Account",
+    arAccount: "Accounts Receivable",
+    apAccount: "Accounts Payable",
+    ownerUsername: "Owner Username",
+    ownerPassword: "Owner Password",
+    
+    // ===== Common =====
+    search: "Search",
+    filter: "Filter",
+    apply: "Apply",
+    reset: "Reset",
+    close: "Close",
+    yes: "Yes",
+    no: "No",
+    confirm: "Confirm",
+    confirmDelete: "Are you sure you want to delete?",
+    confirmRestore: "Do you want to restore this item?",
+    success: "Success",
+    error: "Error",
+    loading: "Loading...",
+    noData: "No data",
+    
+    // ===== Delete Tracking =====
+    deletedItems: "Deleted Items",
+    showDeleted: "Show Deleted",
+    hideDeleted: "Hide Deleted",
+    deletionDate: "Deletion Date",
+    deletedBy: "Deleted By",
+    reasonForDeletion: "Reason for Deletion",
+    enterReason: "Enter deletion reason",
+    required: "Required",
   }
 };

@@ -1,13 +1,16 @@
-import React from "react";
+// ===============================
+// OrdersSection.jsx - محسّن
+// Features: Full Translation + Soft Delete
+// ===============================
+
+import React, { useState } from "react";
+import { doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { Trash2, RotateCcw, Eye, EyeOff, CheckCircle, XCircle, FileText } from "lucide-react";
 
 export const OrdersSection = ({
   ordersTab,
   setOrdersTab,
-
-  // يدعم الاثنين: orders أو listToShow
-  orders,
-  listToShow,
-
+  listToShow = [],
   oldFrom,
   setOldFrom,
   oldTo,
@@ -16,89 +19,195 @@ export const OrdersSection = ({
   setApplyOldFilter,
   oldFilterError,
   setOldFilterError,
-
   markOrder,
-  printInvoice,
   deleteOrderPermanently,
+  printInvoice,
   getPayLabel,
-  setReceiptView,
-  setReceiptOpen,
-
   CURRENCY,
+  admT,
+  adminLang,
+  db,
+  appId,
+  adminSession
 }) => {
-  const safeList = Array.isArray(listToShow)
-    ? listToShow
-    : Array.isArray(orders)
-    ? orders
-    : [];
+  const [showDeleted, setShowDeleted] = useState(false);
+  
+  // Delete modal
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [deleteReason, setDeleteReason] = useState("");
+
+  const openDeleteModal = (order) => {
+    setItemToDelete(order);
+    setDeleteReason("");
+    setDeleteModalOpen(true);
+  };
+
+  const handleSoftDelete = async () => {
+    if (!deleteReason.trim()) {
+      alert(admT?.required || "مطلوب");
+      return;
+    }
+
+    if (!itemToDelete) return;
+
+    try {
+      await updateDoc(
+        doc(db, "artifacts", appId, "public", "data", "orders", itemToDelete.id),
+        {
+          isDeleted: true,
+          deletedAt: Date.now(),
+          deletedBy: adminSession?.username || "unknown",
+          deleteReason: deleteReason.trim(),
+        }
+      );
+
+      setDeleteModalOpen(false);
+      setItemToDelete(null);
+      setDeleteReason("");
+    } catch (e) {
+      console.error(e);
+      alert(admT?.errorOccurred || "حدث خطأ أثناء الحذف");
+    }
+  };
+
+  const handleRestore = async (orderId) => {
+    if (!confirm(admT?.confirmRestore || "هل تريد استعادة هذا الطلب؟")) return;
+
+    try {
+      await updateDoc(
+        doc(db, "artifacts", appId, "public", "data", "orders", orderId),
+        {
+          isDeleted: false,
+          restoredAt: Date.now(),
+          restoredBy: adminSession?.username || "unknown",
+        }
+      );
+    } catch (e) {
+      console.error(e);
+      alert(admT?.errorOccurred || "حدث خطأ");
+    }
+  };
+
+  const handlePermanentDelete = async (orderId) => {
+    if (!confirm(admT?.confirmDelete || "هل أنت متأكد من الحذف النهائي؟")) return;
+
+    try {
+      await deleteDoc(doc(db, "artifacts", appId, "public", "data", "orders", orderId));
+    } catch (e) {
+      console.error(e);
+      alert(admT?.errorOccurred || "حدث خطأ");
+    }
+  };
+
+  // Filter orders
+  const activeOrders = listToShow.filter(o => !o.isDeleted);
+  const deletedOrders = listToShow.filter(o => o.isDeleted);
+  const displayOrders = showDeleted ? [...activeOrders, ...deletedOrders] : activeOrders;
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "prepared":
+        return "bg-emerald-100 text-emerald-700";
+      case "cancelled":
+        return "bg-red-100 text-red-700";
+      default:
+        return "bg-blue-100 text-blue-700";
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    const labels = {
+      ar: { new: "جديد", prepared: "جاهز", cancelled: "ملغي" },
+      tr: { new: "Yeni", prepared: "Hazır", cancelled: "İptal" },
+      en: { new: "New", prepared: "Prepared", cancelled: "Cancelled" }
+    };
+    return labels[adminLang]?.[status] || status;
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-black">الطلبات</h2>
-
-        <div className="flex gap-2">
-          <button
-            onClick={() => setOrdersTab("active")}
-            className={`px-4 py-2 rounded-xl font-black ${
-              ordersTab === "active"
-                ? "bg-orange-600 text-white"
-                : "bg-slate-100 text-slate-700"
-            }`}
-          >
-            الطلبات النشطة
-          </button>
-
-          <button
-            onClick={() => setOrdersTab("old")}
-            className={`px-4 py-2 rounded-xl font-black ${
-              ordersTab === "old"
-                ? "bg-orange-600 text-white"
-                : "bg-slate-100 text-slate-700"
-            }`}
-          >
-            الطلبات القديمة
-          </button>
-        </div>
+        <h2 className="text-xl font-black">
+          📋 {admT?.ordersSection || "الطلبات"}
+        </h2>
+        <button
+          onClick={() => setShowDeleted(!showDeleted)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 font-bold transition-all"
+        >
+          {showDeleted ? <EyeOff size={18} /> : <Eye size={18} />}
+          {showDeleted ? (admT?.hideDeleted || "إخفاء المحذوفات") : (admT?.showDeleted || "إظهار المحذوفات")}
+        </button>
       </div>
 
-      {ordersTab === "old" && (
-        <div className="bg-white border rounded-2xl p-4">
-          <div className="font-black mb-3">فلترة الطلبات حسب التاريخ</div>
+      {/* Tabs */}
+      <div className="flex gap-2 bg-white p-2 rounded-2xl border">
+        <button
+          onClick={() => setOrdersTab("active")}
+          className={`flex-1 py-2 rounded-xl font-black transition-all ${
+            ordersTab === "active"
+              ? "bg-slate-950 text-white"
+              : "bg-slate-50 text-slate-700"
+          }`}
+        >
+          {admT?.activeOrders || "الطلبات النشطة"}
+        </button>
+        <button
+          onClick={() => setOrdersTab("old")}
+          className={`flex-1 py-2 rounded-xl font-black transition-all ${
+            ordersTab === "old"
+              ? "bg-slate-950 text-white"
+              : "bg-slate-50 text-slate-700"
+          }`}
+        >
+          {admT?.oldOrders || "الطلبات القديمة"}
+        </button>
+      </div>
 
+      {/* Old Orders Filter */}
+      {ordersTab === "old" && (
+        <div className="bg-white p-4 rounded-2xl border space-y-3">
+          <h3 className="font-black text-sm">
+            {admT?.filter || "تصفية"} {admT?.oldOrders || "الطلبات القديمة"}
+          </h3>
+          
           <div className="flex flex-wrap gap-3 items-end">
-            <div>
-              <div className="text-xs font-bold text-slate-500">من تاريخ</div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-xs font-bold mb-1">
+                {admT?.from || "من"}
+              </label>
               <input
                 type="date"
-                value={oldFrom || ""}
+                value={oldFrom}
                 onChange={(e) => {
                   setOldFrom?.(e.target.value);
                   setOldFilterError?.("");
                 }}
-                className="border rounded-xl px-3 py-2"
+                className="w-full p-2 rounded-xl border font-bold text-sm"
               />
             </div>
 
-            <div>
-              <div className="text-xs font-bold text-slate-500">إلى تاريخ</div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-xs font-bold mb-1">
+                {admT?.to || "إلى"}
+              </label>
               <input
                 type="date"
-                value={oldTo || ""}
+                value={oldTo}
                 onChange={(e) => {
                   setOldTo?.(e.target.value);
                   setOldFilterError?.("");
                 }}
-                className="border rounded-xl px-3 py-2"
+                className="w-full p-2 rounded-xl border font-bold text-sm"
               />
             </div>
 
             <button
               type="button"
               onClick={applyOldOrdersFilter}
-              className="bg-orange-600 text-white px-5 py-3 rounded-2xl font-black"
+              className="bg-orange-600 text-white px-5 py-2 rounded-xl font-black"
             >
-              بحث
+              {admT?.search || "بحث"}
             </button>
 
             <button
@@ -109,177 +218,239 @@ export const OrdersSection = ({
                 setApplyOldFilter?.(false);
                 setOldFilterError?.("");
               }}
-              className="bg-slate-200 px-5 py-3 rounded-2xl font-black"
+              className="bg-slate-200 px-5 py-2 rounded-xl font-black"
             >
-              إلغاء
+              {admT?.reset || "إلغاء"}
             </button>
           </div>
 
           {oldFilterError && (
-            <div className="mt-3 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 font-black">
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 font-black text-sm">
               {oldFilterError}
             </div>
           )}
         </div>
       )}
 
-      {safeList.length === 0 ? (
-        <div className="p-5 rounded-2xl bg-white border font-bold text-slate-500">
-          لا يوجد طلبات هنا
+      {/* Orders List */}
+      {displayOrders.length === 0 ? (
+        <div className="p-6 rounded-2xl bg-white border text-center font-bold text-slate-500">
+          {admT?.noOrders || "لا يوجد طلبات هنا"}
         </div>
       ) : (
         <div className="space-y-3">
-          {safeList.map((o) => (
-            <div key={o.id} className="bg-white border rounded-2xl p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="font-black text-slate-900">
-                    {o.table ? `المستلم/الطاولة: ${o.table}` : "طلب"}
-                  </div>
-
-                  <div className="text-xs font-bold text-slate-500 mt-1">
-                    {o.timestamp ? new Date(o.timestamp).toLocaleString() : ""}
-                  </div>
-
-                  {o.status !== "new" && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <span
-                        className={`px-3 py-1 rounded-full text-[11px] font-black ${
-                          o.status === "prepared"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {o.status === "prepared" ? "✅ تم التحضير" : "⛔ تم الإلغاء"}
-                      </span>
-
-                      {o.closedBy && (
-                        <span className="px-3 py-1 rounded-full text-[11px] font-black bg-slate-100 text-slate-700">
-                          👤 تم بواسطة: {o.closedBy}
-                        </span>
-                      )}
-
-                      {o.closedAt && (
-                        <span className="px-3 py-1 rounded-full text-[11px] font-black bg-slate-100 text-slate-700">
-                          🕐 وقت الإغلاق: {new Date(o.closedAt).toLocaleString()}
+          {displayOrders.map((order) => {
+            const isDeleted = order.isDeleted;
+            
+            return (
+              <div
+                key={order.id}
+                className={`p-4 rounded-2xl border-2 ${
+                  isDeleted
+                    ? "bg-red-50 border-red-300 opacity-75"
+                    : "bg-white border-slate-200"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className={`font-black text-lg ${isDeleted ? "text-red-900" : "text-slate-900"}`}>
+                        {order.table
+                          ? `${admT?.tableNumber || "الطاولة"}: ${order.table}`
+                          : admT?.order || "طلب"}
+                      </h4>
+                      {isDeleted && (
+                        <span className="px-3 py-1 rounded-full bg-red-200 text-xs font-black text-red-700">
+                          {admT?.deleted || "محذوف"}
                         </span>
                       )}
                     </div>
-                  )}
 
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <span className="px-3 py-1 rounded-full text-[11px] font-black bg-slate-100 text-slate-700">
-                      💳 الدفع: {getPayLabel?.(o.paymentMethod)}
-                    </span>
+                    <div className="text-xs font-bold text-slate-500">
+                      {order.timestamp
+                        ? new Date(order.timestamp).toLocaleString()
+                        : "-"}
+                    </div>
 
-                    {Number(o.discountPercent || 0) > 0 && (
-                      <span className="px-3 py-1 rounded-full text-[11px] font-black bg-orange-100 text-orange-700">
-                        🔻 خصم: {Number(o.discountPercent || 0)}%
-                      </span>
+                    {!isDeleted && order.status !== "new" && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-black ${getStatusColor(order.status)}`}>
+                          {getStatusLabel(order.status)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-right">
+                    <div className="text-xl font-black text-slate-900">
+                      {Number(order.totalWithTax || 0).toFixed(2)} {CURRENCY}
+                    </div>
+                    {order.paymentMethod && (
+                      <div className="text-xs font-bold text-slate-600 mt-1">
+                        {getPayLabel(order.paymentMethod)}
+                      </div>
                     )}
                   </div>
                 </div>
 
-                <div className="font-black text-slate-900 text-right space-y-1">
-                  {Number(o.discountPercent || 0) > 0 ? (
+                {/* Items */}
+                {order.items && order.items.length > 0 && (
+                  <div className="bg-slate-50 p-3 rounded-xl mb-3">
+                    <div className="font-bold text-xs text-slate-600 mb-2">
+                      {admT?.items || "العناصر"}:
+                    </div>
+                    <div className="space-y-1">
+                      {order.items.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between text-sm"
+                        >
+                          <span className="font-bold text-slate-700">
+                            {item.quantity}x {item.nameAr || item.name}
+                          </span>
+                          <span className="font-black text-slate-900">
+                            {Number(item.price || 0).toFixed(2)} {CURRENCY}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Delete Reason */}
+                {isDeleted && order.deleteReason && (
+                  <div className="bg-white p-3 rounded-xl mb-3">
+                    <div className="text-xs font-bold text-slate-600 mb-1">
+                      {admT?.reasonForDeletion || "سبب الحذف"}:
+                    </div>
+                    <div className="text-sm font-bold text-red-700">
+                      {order.deleteReason}
+                    </div>
+                  </div>
+                )}
+
+                {isDeleted && (
+                  <div className="text-xs font-bold text-slate-500 mb-3">
+                    {admT?.deletedBy || "تم الحذف بواسطة"}: {order.deletedBy || "-"}
+                    <br />
+                    {admT?.deletionDate || "تاريخ الحذف"}:{" "}
+                    {order.deletedAt
+                      ? new Date(order.deletedAt).toLocaleString()
+                      : "-"}
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                  {!isDeleted && order.status === "new" && (
                     <>
-                      <div className="text-sm text-slate-500 font-black">
-                        قبل الخصم: {Number(o.subtotal || 0).toFixed(2)} TL
-                      </div>
+                      <button
+                        onClick={() => markOrder(order.id, "prepared")}
+                        className="flex-1 py-2 rounded-xl bg-emerald-100 text-emerald-700 font-black flex items-center justify-center gap-1"
+                      >
+                        <CheckCircle size={14} />
+                        {admT?.markPrepared || "تجهيز"}
+                      </button>
+                      <button
+                        onClick={() => markOrder(order.id, "cancelled")}
+                        className="flex-1 py-2 rounded-xl bg-red-100 text-red-700 font-black flex items-center justify-center gap-1"
+                      >
+                        <XCircle size={14} />
+                        {admT?.markCancelled || "إلغاء"}
+                      </button>
+                    </>
+                  )}
 
-                      <div className="text-sm text-orange-600 font-black">
-                        خصم ({Number(o.discountPercent || 0)}%): -
-                        {Number(o.discountAmount || 0).toFixed(2)} TL
-                      </div>
+                  {!isDeleted && (
+                    <button
+                      onClick={() => printInvoice(order)}
+                      className="flex-1 py-2 rounded-xl bg-blue-100 text-blue-700 font-black flex items-center justify-center gap-1"
+                    >
+                      <FileText size={14} />
+                      {admT?.printInvoice || "طباعة"}
+                    </button>
+                  )}
 
-                      <div className="text-sm font-black">
-                        بعد الخصم: {Number(o.total || 0).toFixed(2)} TL
-                      </div>
+                  {isDeleted ? (
+                    <>
+                      <button
+                        onClick={() => handleRestore(order.id)}
+                        className="flex-1 py-2 rounded-xl bg-emerald-100 text-emerald-700 font-black flex items-center justify-center gap-1"
+                      >
+                        <RotateCcw size={14} />
+                        {admT?.restore || "استعادة"}
+                      </button>
+                      <button
+                        onClick={() => handlePermanentDelete(order.id)}
+                        className="flex-1 py-2 rounded-xl bg-red-600 text-white font-black"
+                      >
+                        {admT?.delete || "حذف نهائي"}
+                      </button>
                     </>
                   ) : (
-                    <div className="text-sm font-black">
-                      قبل الضريبة: {Number(o.total || 0).toFixed(2)} TL
-                    </div>
-                  )}
-
-                  {Number(o.taxPercent || 0) > 0 && (
-                    <>
-                      <div className="text-sm text-blue-700 font-black">
-                        ضريبة ({Number(o.taxPercent || 0)}%):
-                        {Number(o.taxAmount || 0).toFixed(2)} TL
-                      </div>
-
-                      <div className="text-lg font-black text-slate-900">
-                        الإجمالي بعد الضريبة:
-                        {Number(
-                          o.totalWithTax ||
-                            Number(o.total || 0) + Number(o.taxAmount || 0)
-                        ).toFixed(2)}{" "}
-                        TL
-                      </div>
-                    </>
+                    <button
+                      onClick={() => openDeleteModal(order)}
+                      className="flex-1 py-2 rounded-xl bg-red-100 text-red-700 font-black flex items-center justify-center gap-1"
+                    >
+                      <Trash2 size={14} />
+                      {admT?.delete || "حذف"}
+                    </button>
                   )}
                 </div>
               </div>
+            );
+          })}
+        </div>
+      )}
 
-              <div className="mt-3 space-y-1">
-                {(Array.isArray(o.items) ? o.items : []).map((it, idx) => (
-                  <div key={idx} className="text-sm font-bold text-slate-700">
-                    • {it.quantity}x {it.nameAr || it.nameEn || it.nameTr || it.id}
-                    {it.note ? (
-                      <span className="text-slate-500"> — 📝 {it.note}</span>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
+      {/* Delete Modal */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-6">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full">
+            <h3 className="font-black text-xl mb-4 text-red-700">
+              {admT?.confirmDelete || "تأكيد الحذف"}
+            </h3>
 
-              {ordersTab === "old" && (
-                <button
-                  onClick={() => deleteOrderPermanently?.(o.id)}
-                  className="mt-3 bg-red-600 text-white px-4 py-2 rounded-2xl font-black hover:bg-red-500"
-                >
-                  حذف الطلب
-                </button>
-              )}
+            <p className="font-bold text-slate-700 mb-4">
+              {adminLang === "ar"
+                ? `هل تريد حذف الطلب "${itemToDelete?.table || "طلب"}"؟`
+                : adminLang === "tr"
+                ? `"${itemToDelete?.table || "Sipariş"}" siparişini silmek istiyor musunuz?`
+                : `Delete order "${itemToDelete?.table || "Order"}"?`}
+            </p>
 
-              {o.status === "new" && (
-                <div className="mt-4 flex gap-2">
-                  <button
-                    onClick={() => markOrder?.(o.id, "prepared")}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-black"
-                  >
-                    تم التحضير
-                  </button>
-
-                  <button
-                    onClick={() => markOrder?.(o.id, "cancelled")}
-                    className="px-4 py-2 rounded-xl bg-red-600 text-white font-black"
-                  >
-                    إلغاء
-                  </button>
-
-                  <button
-                    onClick={() => printInvoice?.(o)}
-                    className="px-4 py-2 rounded-xl bg-slate-950 text-white font-black"
-                  >
-                    طباعة فاتورة
-                  </button>
-                </div>
-              )}
-
-              {o.receiptDataUrl && (
-                <button
-                  onClick={() => {
-                    setReceiptView?.(o.receiptDataUrl);
-                    setReceiptOpen?.(true);
-                  }}
-                  className="mt-3 px-4 py-2 rounded-xl bg-blue-600 text-white font-black"
-                >
-                  عرض الإيصال
-                </button>
-              )}
+            <div className="mb-4">
+              <label className="block text-sm font-bold mb-2 text-red-700">
+                {admT?.reasonForDeletion || "سبب الحذف"} *
+              </label>
+              <textarea
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                placeholder={admT?.enterReason || "أدخل سبب الحذف"}
+                rows={3}
+                className="w-full p-3 rounded-xl border border-red-300 font-bold focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
             </div>
-          ))}
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleSoftDelete}
+                className="flex-1 py-3 rounded-xl bg-red-600 text-white font-black"
+              >
+                {admT?.delete || "حذف"}
+              </button>
+              <button
+                onClick={() => {
+                  setDeleteModalOpen(false);
+                  setItemToDelete(null);
+                  setDeleteReason("");
+                }}
+                className="flex-1 py-3 rounded-xl bg-slate-100 font-black"
+              >
+                {admT?.cancel || "إلغاء"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
