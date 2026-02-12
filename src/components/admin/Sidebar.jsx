@@ -1,6 +1,5 @@
 // ===============================
-// Sidebar.jsx - محسّن مع الموظفين والنسب
-// Features: Full Translation + Staff + Percentages
+// Sidebar.jsx - FULL (Tailwind-safe colors)
 // ===============================
 
 import React from "react";
@@ -21,13 +20,29 @@ import {
   Percent
 } from "lucide-react";
 
-export const Sidebar = ({ 
-  adminPage, 
-  setAdminPage, 
-  admT, 
+export const Sidebar = ({
+  adminPage,
+  setAdminPage,
+  admT,
   adminLang,
-  adminSession // لتحديد صلاحيات الأدمن
+  adminSession
 }) => {
+  const colorClass = {
+    orange: "text-orange-600",
+    blue: "text-blue-600",
+    purple: "text-purple-600",
+    emerald: "text-emerald-600",
+    indigo: "text-indigo-600",
+    cyan: "text-cyan-600",
+    pink: "text-pink-600",
+    green: "text-green-600",
+    slate: "text-slate-600",
+    amber: "text-amber-600",
+    teal: "text-teal-600",
+    violet: "text-violet-600",
+    rose: "text-rose-600",
+  };
+
   const menuItems = [
     { id: "menu", label: admT?.menuSection || "قائمة الطعام", icon: ShoppingBag, color: "orange" },
     { id: "orders", label: admT?.ordersSection || "الطلبات", icon: Receipt, color: "blue" },
@@ -43,82 +58,58 @@ export const Sidebar = ({
     { id: "cashFlow", label: admT?.cashFlowSection || "التدفق النقدي", icon: Activity, color: "blue" },
   ];
 
-  // أقسام الأدمن فقط
-  const adminOnlyItems = [
+  const managementItems = [
     { id: "staff", label: admT?.staffSection || "الموظفين", icon: UserCog, color: "violet" },
     { id: "percentages", label: admT?.percentagesSection || "النسب والخصومات", icon: Percent, color: "rose" },
-    { id: "settings", label: admT?.settingsSection || "الإعدادات", icon: Settings, color: "slate" }
+    { id: "settings", label: admT?.settingsSection || "الإعدادات", icon: Settings, color: "slate" },
   ];
+
+  const title = adminLang === "ar" ? "القائمة" : adminLang === "tr" ? "Menü" : "Menu";
+  const mgmt = adminLang === "ar" ? "إدارة" : adminLang === "tr" ? "Yönetim" : "Management";
 
   return (
     <aside className="xl:col-span-3">
       <div className="bg-white rounded-2xl border p-4 sticky top-[100px] max-h-[calc(100vh-120px)] overflow-y-auto">
-        <h3 className="font-black text-xs text-slate-400 uppercase tracking-wider mb-3 px-2">
-          {adminLang === "ar" ? "القائمة" : adminLang === "tr" ? "Menü" : "Menu"}
-        </h3>
-        
+        <h3 className="font-black text-xs text-slate-400 uppercase tracking-wider mb-3 px-2">{title}</h3>
+
         <nav className="space-y-1">
-          {/* القائمة الرئيسية */}
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = adminPage === item.id;
-            
+
             return (
               <button
                 key={item.id}
                 onClick={() => setAdminPage(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                  isActive
-                    ? "bg-slate-950 text-white"
-                    : `text-slate-700 hover:bg-slate-50`
+                  isActive ? "bg-slate-950 text-white" : "text-slate-700 hover:bg-slate-50"
                 }`}
               >
-                <Icon 
-                  size={18} 
-                  className={isActive ? "" : `text-${item.color}-600`} 
-                />
+                <Icon size={18} className={isActive ? "" : (colorClass[item.color] || "text-slate-600")} />
                 <span className="flex-1 text-right">{item.label}</span>
               </button>
             );
           })}
 
-          {/* فاصل */}
-          {adminSession?.role === "admin" && (
-            <div className="my-3 px-2">
-              <div className="h-px bg-slate-200"></div>
-              <h3 className="font-black text-xs text-slate-400 uppercase tracking-wider mt-3 mb-2">
-                {adminLang === "ar" ? "إدارة" : adminLang === "tr" ? "Yönetim" : "Management"}
-              </h3>
-            </div>
-          )}
+          <div className="my-3 px-2">
+            <div className="h-px bg-slate-200"></div>
+            <h3 className="font-black text-xs text-slate-400 uppercase tracking-wider mt-3 mb-2">{mgmt}</h3>
+          </div>
 
-          {/* قائمة الأدمن فقط */}
-          {adminSession?.role === "admin" && adminOnlyItems.map((item) => {
+          {managementItems.map((item) => {
             const Icon = item.icon;
             const isActive = adminPage === item.id;
-            
+
             return (
               <button
                 key={item.id}
                 onClick={() => setAdminPage(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold text-sm transition-all ${
-                  isActive
-                    ? "bg-slate-950 text-white"
-                    : `text-slate-700 hover:bg-slate-50`
+                  isActive ? "bg-slate-950 text-white" : "text-slate-700 hover:bg-slate-50"
                 }`}
               >
-                <Icon 
-                  size={18} 
-                  className={isActive ? "" : `text-${item.color}-600`} 
-                />
+                <Icon size={18} className={isActive ? "" : (colorClass[item.color] || "text-slate-600")} />
                 <span className="flex-1 text-right">{item.label}</span>
-                
-                {/* شارة للأدمن فقط */}
-                {!isActive && (
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-red-100 text-red-600">
-                    {adminLang === "ar" ? "أدمن" : adminLang === "tr" ? "Admin" : "Admin"}
-                  </span>
-                )}
               </button>
             );
           })}

@@ -1,5 +1,6 @@
 // ===============================
-// App.jsx (Full + Fixed) + Cashier Route + NO Admin Remember
+// App.jsx (FULL) - Staff Gate + Admin + Cashier + Customer Tables/Menu
+// FIX: no "t before init" + table/order link + safer props
 // ===============================
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -11,23 +12,21 @@ import {
   deleteDoc,
   getDoc,
   setDoc,
+  updateDoc,
   query,
   orderBy,
   limit,
 } from "firebase/firestore";
 import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
-
 import { CheckCircle } from "lucide-react";
 
-// UI Components
 import { LuxuryShell } from "./components/shared/LuxuryShell";
-import { ModeSelectionScreen } from "./components/shared/ModeSelectionScreen"; // ✅ مرة واحدة فقط
+import { ModeSelectionScreen } from "./components/shared/ModeSelectionScreen";
 
 import { AdminLoginScreen } from "./components/admin/AdminLoginScreen";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import { Sidebar } from "./components/admin/Sidebar";
 
-// Cashier
 import { CashierLogin } from "./components/cashier/CashierLogin";
 import { CashierPage } from "./components/cashier/CashierPage";
 
@@ -44,6 +43,9 @@ import { CustomersSection } from "./components/admin/CustomersSection";
 import { VendorsSection } from "./components/admin/VendorsSection";
 import { BillsSection } from "./components/admin/BillsSection";
 import { SettingsSection } from "./components/admin/SettingsSection";
+import { StaffSection } from "./components/admin/StaffSection";
+import { PercentagesSection } from "./components/admin/PercentagesSection";
+
 
 import { TableSelection } from "./components/customer/TableSelection";
 import { Menu } from "./components/customer/Menu";
@@ -53,59 +55,26 @@ import { NotesModal } from "./components/customer/NotesModal";
 import { CreateOrderModal } from "./components/modals/CreateOrderModal";
 import { VipModal } from "./components/modals/VipModal";
 
-// Config
 import { appId, CURRENCY } from "./config/constants";
 import { auth, db } from "./config/firebase";
 
-// Utils + i18n
 import { orderDateToJS, normalizeDigits } from "./utils/helpers";
 import { translations } from "./translations";
 
-// Services
 import { adminLogin, adminRegister, adminLogout as performAdminLogout } from "./services/auth";
 
 import "./App.css";
 
 export default function App() {
   // =========================
-  // [S02] Route
+  // [S01] BASIC STATE FIRST (so we can use them safely in routes)
   // =========================
-  const path = typeof window !== "undefined" ? window.location.pathname : "/";
-  const isAdminRoute = path.startsWith("/admin");
-  const isCashierRoute = path.startsWith("/cashier");
-  const isPortalRoute = path === "/" || path.startsWith("/portal"); // ✅ Portal فقط هنا
-
-  // =========================
-  // [S03] State
-  // =========================
-  const [appMode, setAppMode] = useState(() => {
-    // على /admin أو /cashier ما نستخدم portal نهائيًا (حتى ما يعلق)
-    if (isAdminRoute) return "admin";
-    if (isCashierRoute) return "cashier";
-    if (isPortalRoute) return "portal";
-    return "customer";
-  });
 
   const [user, setUser] = useState(null);
 
   // Languages
   const [lang, setLang] = useState("ar");
   const [adminLang, setAdminLang] = useState("ar");
-
-  // Customer
-  const [view, setView] = useState("selection");
-  const [table, setTable] = useState(null);
-  const [cart, setCart] = useState([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState(null);
-  const [orderStatus, setOrderStatus] = useState(null);
-  const [receiptDataUrl, setReceiptDataUrl] = useState("");
-  const [receiptError, setReceiptError] = useState("");
-
-  // Notes modal
-  const [notesOpen, setNotesOpen] = useState(false);
-  const [notesItem, setNotesItem] = useState(null);
-  const [notesText, setNotesText] = useState("");
 
   // Admin auth
   const [adminSession, setAdminSession] = useState(null);
@@ -121,6 +90,20 @@ export default function App() {
   const [cashierSession, setCashierSession] = useState(null);
   const [cashierAuthError, setCashierAuthError] = useState("");
 
+  // Customer flow
+  const [table, setTable] = useState(null);
+  const [cart, setCart] = useState([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState(null);
+  const [orderStatus, setOrderStatus] = useState(null);
+  const [receiptDataUrl, setReceiptDataUrl] = useState("");
+  const [receiptError, setReceiptError] = useState("");
+
+  // Notes modal
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [notesItem, setNotesItem] = useState(null);
+  const [notesText, setNotesText] = useState("");
+
   // Admin UI
   const [adminPage, setAdminPage] = useState("menu");
   const [ordersTab, setOrdersTab] = useState("active");
@@ -135,28 +118,9 @@ export default function App() {
   const [customers, setCustomers] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [bills, setBills] = useState([]);
-
-  // Accounting settings (basic)
-  const [accSettings] = useState({
-    accounts: {
-      cash: "cash",
-      bank: "bank",
-      sales: "sales",
-      vatOutput: "vat_output",
-      ar: "ar",
-      ap: "ap",
-    },
-  });
-
-  // Modals
-  const [createOrderOpen, setCreateOrderOpen] = useState(false);
-  const [vipOpen, setVipOpen] = useState(false);
-  const [accountsOpen, setAccountsOpen] = useState(false);
-
-  // VIP
   const [vipList, setVipList] = useState([]);
 
-  // Finance (settings doc)
+  // Finance settings doc
   const [taxPercent, setTaxPercent] = useState(0);
   const [cashDiscountPercent, setCashDiscountPercent] = useState(0);
 
@@ -166,26 +130,43 @@ export default function App() {
   const [applyOldFilter, setApplyOldFilter] = useState(false);
   const [oldFilterError, setOldFilterError] = useState("");
 
-  // Admin receipt modal state
-  const [receiptOpen, setReceiptOpen] = useState(false);
-  const [receiptView, setReceiptView] = useState(null);
+  // Modals
+  const [createOrderOpen, setCreateOrderOpen] = useState(false);
+  const [vipOpen, setVipOpen] = useState(false);
+  const [accountsOpen, setAccountsOpen] = useState(false);
 
   // =========================
-  // [S04] Firestore Paths
+  // [S02] PATHS
   // =========================
   const adminUsersColPath = ["artifacts", appId, "public", "data", "adminUsers"];
   const ownerDocPath = ["artifacts", appId, "public", "data", "adminConfig", "owner"];
   const vipCustomersColPath = ["artifacts", appId, "public", "data", "vipCustomers"];
   const financeDocPath = ["artifacts", appId, "public", "data", "appConfig", "finance"];
+  const accountingDocPath = ["artifacts", appId, "public", "data", "appConfig", "accounting"];
+
+  // NEW: tables collection
+  const tablesColPath = ["artifacts", appId, "public", "data", "tables"];
 
   // =========================
-  // [S05] Translations
+  // [S03] i18n
   // =========================
   const t = translations[lang] || translations.ar;
   const admT = translations[adminLang] || translations.ar;
 
   // =========================
-  // Helpers used by OrdersSection
+  // [S04] ROUTE FLAGS (safe now)
+  // =========================
+  const path = typeof window !== "undefined" ? window.location.pathname : "/";
+
+  const isAdminRoute = path.startsWith("/admin");
+  const isCashierRoute = path.startsWith("/cashier");
+  const isStaffGateRoute = path === "/";
+
+  const isCustomerTablesRoute = path.startsWith("/tables");
+  const isCustomerMenuRoute = path.startsWith("/menu");
+
+  // =========================
+  // [S05] HELPERS
   // =========================
   const getPayLabel = (m) => {
     if (m === "cash") return adminLang === "ar" ? "كاش" : "Cash";
@@ -194,6 +175,269 @@ export default function App() {
     return adminLang === "ar" ? "غير محدد" : "Unknown";
   };
 
+  const persistTable = (tableNumber) => {
+    try {
+      localStorage.setItem("wingi_customer_table", JSON.stringify({ table: tableNumber, at: Date.now() }));
+    } catch {}
+  };
+
+  const loadPersistedTable = () => {
+    try {
+      const raw = localStorage.getItem("wingi_customer_table");
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed?.table ?? null;
+    } catch {
+      return null;
+    }
+  };
+
+  const clearPersistedTable = () => {
+    try {
+      localStorage.removeItem("wingi_customer_table");
+    } catch {}
+  };
+
+  // Update table status in Firestore
+  const setTableStatus = async (tableNumber, patch) => {
+    const tableId = String(tableNumber);
+    const ref = doc(db, ...tablesColPath, tableId);
+    await setDoc(
+      ref,
+      {
+        number: Number(tableNumber),
+        updatedAt: Date.now(),
+        ...patch,
+      },
+      { merge: true }
+    );
+  };
+
+  // =========================
+  // [S06] EFFECTS (Auth + Sessions + Data)
+  // =========================
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        await signInAnonymously(auth);
+      } catch (e) {
+        console.error("Auth init error:", e);
+      }
+    };
+    initAuth();
+    return onAuthStateChanged(auth, setUser);
+  }, []);
+
+  // Load cashier session
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = localStorage.getItem("wingi_cashier_session");
+    if (!raw) return;
+    try {
+      setCashierSession(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  // Load customer table from localStorage (so /menu works after refresh)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = loadPersistedTable();
+    if (saved && !table) setTable(saved);
+  }, [table]);
+
+  // Ensure owner exists
+  useEffect(() => {
+    if (!user) return;
+
+    const ensureOwner = async () => {
+      const ref = doc(db, ...ownerDocPath);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        await setDoc(ref, {
+          ownerUsername: "admin",
+          ownerPassword: "12344321",
+          updatedAt: Date.now(),
+        });
+      }
+    };
+
+    ensureOwner();
+  }, [user]);
+
+  // Owner config live
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(doc(db, ...ownerDocPath), (snap) => {
+      if (snap.exists()) setOwnerConfig(snap.data());
+    });
+    return () => unsub();
+  }, [user]);
+
+  // Finance config live
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(doc(db, ...financeDocPath), (snap) => {
+      if (!snap.exists()) return;
+      const d = snap.data() || {};
+      setCashDiscountPercent(Number(d.cashDiscountPercent || 0));
+      setTaxPercent(Number(d.taxPercent || 0));
+    });
+    return () => unsub();
+  }, [user]);
+
+  // Main data live
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubMenu = onSnapshot(
+      collection(db, "artifacts", appId, "public", "data", "menu"),
+      (snap) => setMenuItems(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+    );
+
+    const unsubOrders = onSnapshot(collection(db, "artifacts", appId, "public", "data", "orders"), (snap) => {
+      const arr = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      arr.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      setOrders(arr);
+    });
+
+    const unsubInv = onSnapshot(collection(db, "artifacts", appId, "public", "data", "inventory"), (snap) =>
+      setInventory(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+    );
+
+    const unsubJournal = onSnapshot(
+      query(collection(db, "artifacts", appId, "public", "data", "journalEntries"), orderBy("createdAt", "desc"), limit(50)),
+      (snap) => setJournalEntries(snap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) })))
+    );
+
+    const unsubAccounts = onSnapshot(
+      query(collection(db, "artifacts", appId, "public", "data", "accounts"), orderBy("code", "asc")),
+      (snap) => setAccounts(snap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) })))
+    );
+
+    const unsubInvoices = onSnapshot(collection(db, "artifacts", appId, "public", "data", "invoices"), (snap) =>
+      setInvoices(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+    );
+
+    const unsubCustomers = onSnapshot(collection(db, "artifacts", appId, "public", "data", "customers"), (snap) =>
+      setCustomers(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+    );
+
+    const unsubVendors = onSnapshot(collection(db, "artifacts", appId, "public", "data", "vendors"), (snap) =>
+      setVendors(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+    );
+
+    const unsubBills = onSnapshot(collection(db, "artifacts", appId, "public", "data", "bills"), (snap) =>
+      setBills(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+    );
+
+    return () => {
+      unsubMenu();
+      unsubOrders();
+      unsubInv();
+      unsubJournal();
+      unsubAccounts();
+      unsubInvoices();
+      unsubCustomers();
+      unsubVendors();
+      unsubBills();
+    };
+  }, [user]);
+
+  // =========================
+  // [S07] COMPUTED
+  // =========================
+  const computedOutOfStock = useMemo(() => {
+    const invMap = new Map(inventory.map((x) => [x.id, x]));
+    const outMap = {};
+
+    for (const m of menuItems) {
+      const recipe = Array.isArray(m.recipe) ? m.recipe : [];
+      if (recipe.length === 0) {
+        outMap[m.id] = false;
+        continue;
+      }
+
+      let out = false;
+      for (const ing of recipe) {
+        const inv = invMap.get(ing.invId);
+        if (!inv) {
+          out = true;
+          break;
+        }
+        if (inv.unit === "none") continue;
+
+        const invQty = Number(inv.quantity || 0);
+        const need = Number(ing.amountPerOne || 0);
+        if (need > 0 && invQty < need) {
+          out = true;
+          break;
+        }
+      }
+      outMap[m.id] = out;
+    }
+
+    return outMap;
+  }, [inventory, menuItems]);
+
+  const categories = useMemo(() => ["All", ...new Set(menuItems.map((i) => i.categoryAr).filter(Boolean))], [menuItems]);
+  const [activeCategory, setActiveCategory] = useState("All");
+
+  const filteredItems = useMemo(() => {
+    if (activeCategory === "All") return menuItems;
+    return menuItems.filter((i) => i.categoryAr === activeCategory);
+  }, [menuItems, activeCategory]);
+
+  const getLocalizedValue = (item, key) => {
+    if (!item) return "";
+    const pick = (obj, keys) => {
+      for (const k of keys) {
+        if (obj && obj[k] !== undefined && obj[k] !== null && String(obj[k]).length > 0) return obj[k];
+      }
+      return "";
+    };
+
+    if (lang === "ar") return pick(item, [`${key}Ar`, `${key}_ar`, `${key}AR`, key]);
+    if (lang === "tr")
+      return pick(item, [`${key}Tr`, `${key}_tr`, `${key}TR`, `${key}En`, `${key}_en`, `${key}Ar`, `${key}_ar`, key]);
+    return pick(item, [`${key}En`, `${key}_en`, `${key}Ar`, `${key}_ar`, key]);
+  };
+
+  const activeOrders = useMemo(() => orders.filter((o) => o.status === "new"), [orders]);
+
+  const oldOrders = useMemo(() => {
+    let list = orders.filter((o) => o.status !== "new");
+
+    if (applyOldFilter && (oldFrom || oldTo)) {
+      list = list.filter((o) => {
+        const d = orderDateToJS(o);
+        if (!d) return false;
+
+        if (oldFrom) {
+          const from = new Date(oldFrom);
+          if (d < from) return false;
+        }
+        if (oldTo) {
+          const to = new Date(oldTo);
+          to.setHours(23, 59, 59, 999);
+          if (d > to) return false;
+        }
+        return true;
+      });
+    }
+
+    return list;
+  }, [orders, applyOldFilter, oldFrom, oldTo]);
+
+  const listToShow = ordersTab === "active" ? activeOrders : oldOrders;
+
+  const cartSubtotal = cart.reduce((s, i) => s + (i.price || 0) * (i.quantity || 1), 0);
+  const cartTaxP = Math.min(100, Math.max(0, Number(taxPercent || 0)));
+  const cartTaxAmount = (cartSubtotal * cartTaxP) / 100;
+  const cartTotalWithTax = cartSubtotal + cartTaxAmount;
+
+  // =========================
+  // [S08] HANDLERS
+  // =========================
   const applyOldOrdersFilter = () => {
     setOldFilterError("");
 
@@ -242,327 +486,6 @@ export default function App() {
     }
   };
 
-  // =========================
-  // [S06] Effects
-  // =========================
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        await signInAnonymously(auth);
-      } catch (e) {
-        console.error("Auth init error:", e);
-      }
-    };
-    initAuth();
-    return onAuthStateChanged(auth, setUser);
-  }, []);
-
-  // ✅ Load cashier session (remember cashier فقط)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const raw = localStorage.getItem("wingi_cashier_session");
-    if (!raw) return;
-    try {
-      const s = JSON.parse(raw);
-      setCashierSession(s);
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const ensureOwner = async () => {
-      const ref = doc(db, ...ownerDocPath);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) {
-        await setDoc(ref, {
-          ownerUsername: "admin",
-          ownerPassword: "12344321",
-          updatedAt: Date.now(),
-        });
-        return;
-      }
-
-      const data = snap.data() || {};
-      if (!data.ownerUsername || !data.ownerPassword) {
-        await setDoc(
-          ref,
-          {
-            ownerUsername: data.ownerUsername || "admin",
-            ownerPassword: data.ownerPassword || "12344321",
-            updatedAt: Date.now(),
-          },
-          { merge: true }
-        );
-      }
-    };
-
-    ensureOwner();
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const ensureFinance = async () => {
-      const ref = doc(db, ...financeDocPath);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) {
-        await setDoc(ref, {
-          cashDiscountPercent: 0,
-          taxPercent: 0,
-          updatedAt: Date.now(),
-        });
-        return;
-      }
-    };
-
-    ensureFinance();
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-    const unsub = onSnapshot(doc(db, ...ownerDocPath), (snap) => {
-      if (snap.exists()) setOwnerConfig(snap.data());
-    });
-    return () => unsub();
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-    const unsub = onSnapshot(doc(db, ...financeDocPath), (snap) => {
-      if (!snap.exists()) return;
-      const d = snap.data() || {};
-      setCashDiscountPercent(Number(d.cashDiscountPercent || 0));
-      setTaxPercent(Number(d.taxPercent || 0));
-    });
-    return () => unsub();
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const unsubMenu = onSnapshot(
-      collection(db, "artifacts", appId, "public", "data", "menu"),
-      (snap) => setMenuItems(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-    );
-
-    const unsubOrders = onSnapshot(
-      collection(db, "artifacts", appId, "public", "data", "orders"),
-      (snap) => {
-        const arr = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        arr.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        setOrders(arr);
-      }
-    );
-
-    const unsubInv = onSnapshot(
-      collection(db, "artifacts", appId, "public", "data", "inventory"),
-      (snap) => setInventory(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-    );
-
-    const unsubJournal = onSnapshot(
-      query(
-        collection(db, "artifacts", appId, "public", "data", "journalEntries"),
-        orderBy("createdAt", "desc"),
-        limit(50)
-      ),
-      (snap) => setJournalEntries(snap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) })))
-    );
-
-    const unsubAccounts = onSnapshot(
-      query(collection(db, "artifacts", appId, "public", "data", "accounts"), orderBy("code", "asc")),
-      (snap) => setAccounts(snap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) })))
-    );
-
-    const unsubInvoices = onSnapshot(
-      collection(db, "artifacts", appId, "public", "data", "invoices"),
-      (snap) => setInvoices(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-    );
-
-    const unsubCustomers = onSnapshot(
-      collection(db, "artifacts", appId, "public", "data", "customers"),
-      (snap) => setCustomers(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-    );
-
-    const unsubVendors = onSnapshot(
-      collection(db, "artifacts", appId, "public", "data", "vendors"),
-      (snap) => setVendors(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-    );
-
-    const unsubBills = onSnapshot(
-      collection(db, "artifacts", appId, "public", "data", "bills"),
-      (snap) => setBills(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-    );
-
-    return () => {
-      unsubMenu();
-      unsubOrders();
-      unsubInv();
-      unsubJournal();
-      unsubAccounts();
-      unsubInvoices();
-      unsubCustomers();
-      unsubVendors();
-      unsubBills();
-    };
-  }, [user]);
-
-  // =========================
-  // [S07] Computed
-  // =========================
-  const computedOutOfStock = useMemo(() => {
-    const invMap = new Map(inventory.map((x) => [x.id, x]));
-    const outMap = {};
-
-    for (const m of menuItems) {
-      const recipe = Array.isArray(m.recipe) ? m.recipe : [];
-      if (recipe.length === 0) {
-        outMap[m.id] = false;
-        continue;
-      }
-
-      let out = false;
-      for (const ing of recipe) {
-        const inv = invMap.get(ing.invId);
-        if (!inv) {
-          out = true;
-          break;
-        }
-        if (inv.unit === "none") continue;
-
-        const invQty = Number(inv.quantity || 0);
-        const need = Number(ing.amountPerOne || 0);
-        if (need > 0 && invQty < need) {
-          out = true;
-          break;
-        }
-      }
-
-      outMap[m.id] = out;
-    }
-
-    return outMap;
-  }, [inventory, menuItems]);
-
-  const inventoryAlerts = useMemo(() => {
-    const invMap = new Map(inventory.map((x) => [x.id, x]));
-    const usedInv = new Map();
-
-    for (const m of menuItems) {
-      const recipe = Array.isArray(m.recipe) ? m.recipe : [];
-      for (const r of recipe) {
-        if (!r?.invId) continue;
-        const need = Number(r.amountPerOne || 0);
-        if (need <= 0) continue;
-
-        const prev = usedInv.get(r.invId);
-        if (!prev || need < prev) usedInv.set(r.invId, need);
-      }
-    }
-
-    const out = [];
-    const low = [];
-
-    for (const [invId, minNeedForOne] of usedInv.entries()) {
-      const inv = invMap.get(invId);
-      if (!inv || inv.unit === "none") continue;
-
-      const qty = Number(inv.quantity || 0);
-      const base = Number(inv.baselineQuantity || 0);
-      const lowPercent = Number(inv.lowPercent ?? 0.2);
-
-      if (qty < minNeedForOne) {
-        out.push({ invId, name: inv.name || inv.id, qty, needForOne: minNeedForOne });
-        continue;
-      }
-
-      if (base > 0 && qty <= base * lowPercent) {
-        low.push({ invId, name: inv.name || inv.id, qty, base });
-      }
-    }
-
-    return { out, low };
-  }, [inventory, menuItems]);
-
-  const categories = useMemo(() => {
-    return ["All", ...new Set(menuItems.map((i) => i.categoryAr).filter(Boolean))];
-  }, [menuItems]);
-
-  const [activeCategory, setActiveCategory] = useState("All");
-
-  const filteredItems = useMemo(() => {
-    if (activeCategory === "All") return menuItems;
-    return menuItems.filter((i) => i.categoryAr === activeCategory);
-  }, [menuItems, activeCategory]);
-
-  const getLocalizedValue = (item, key) => {
-    if (!item) return "";
-    const pick = (obj, keys) => {
-      for (const k of keys) {
-        if (obj && obj[k] !== undefined && obj[k] !== null && String(obj[k]).length > 0) return obj[k];
-      }
-      return "";
-    };
-
-    if (lang === "ar") return pick(item, [`${key}Ar`, `${key}_ar`, `${key}AR`, key]);
-    if (lang === "tr")
-      return pick(item, [
-        `${key}Tr`,
-        `${key}_tr`,
-        `${key}TR`,
-        `${key}En`,
-        `${key}_en`,
-        `${key}Ar`,
-        `${key}_ar`,
-        key,
-      ]);
-    return pick(item, [`${key}En`, `${key}_en`, `${key}Ar`, `${key}_ar`, key]);
-  };
-
-  const activeOrders = useMemo(() => orders.filter((o) => o.status === "new"), [orders]);
-
-  const oldOrders = useMemo(() => {
-    let list = orders.filter((o) => o.status !== "new");
-
-    if (applyOldFilter && (oldFrom || oldTo)) {
-      list = list.filter((o) => {
-        const d = orderDateToJS(o);
-        if (!d) return false;
-
-        if (oldFrom) {
-          const from = new Date(oldFrom);
-          if (d < from) return false;
-        }
-        if (oldTo) {
-          const to = new Date(oldTo);
-          to.setHours(23, 59, 59, 999);
-          if (d > to) return false;
-        }
-        return true;
-      });
-    }
-
-    return list;
-  }, [orders, applyOldFilter, oldFrom, oldTo]);
-
-  const listToShow = ordersTab === "active" ? activeOrders : oldOrders;
-
-  const cartSubtotal = cart.reduce((s, i) => s + (i.price || 0) * (i.quantity || 1), 0);
-  const cartTaxP = Math.min(100, Math.max(0, Number(taxPercent || 0)));
-  const cartTaxAmount = (cartSubtotal * cartTaxP) / 100;
-  const cartTotalWithTax = cartSubtotal + cartTaxAmount;
-
-  // =========================
-  // [S08] Handlers
-  // =========================
-  const handleStartOrder = (tableNumber) => {
-    setTable(tableNumber);
-    setCart([]);
-    setPaymentMethod(null);
-    setOrderStatus(null);
-    setView("menu");
-  };
-
   const addToCartWithNote = (item, note) => {
     if (computedOutOfStock[item?.id]) return;
 
@@ -577,11 +500,30 @@ export default function App() {
     }
   };
 
+  // ✅ CUSTOMER starts table: link table <-> order (occupied)
+  const handleCustomerChooseTable = async (tableNumber) => {
+    setTable(tableNumber);
+    persistTable(tableNumber);
+
+    setCart([]);
+    setPaymentMethod(null);
+    setOrderStatus(null);
+
+    try {
+      await setTableStatus(tableNumber, { status: "occupied" });
+    } catch (e) {
+      console.error("setTableStatus occupied error:", e);
+    }
+
+    window.location.href = "/menu";
+  };
+
+  // ✅ When customer completes order: create order + attach to table activeOrderId
   const handleCompleteOrder = async () => {
     try {
       setOrderStatus("sending");
 
-      await addDoc(collection(db, "artifacts", appId, "public", "data", "orders"), {
+      const created = await addDoc(collection(db, "artifacts", appId, "public", "data", "orders"), {
         table,
         items: cart,
         total: cartSubtotal,
@@ -593,6 +535,11 @@ export default function App() {
         timestamp: Date.now(),
         receiptDataUrl: paymentMethod === "iban" ? receiptDataUrl : "",
       });
+
+      // link table to active order id
+      if (table) {
+        await setTableStatus(table, { status: "occupied", activeOrderId: created.id });
+      }
 
       setOrderStatus("completed");
       setCart([]);
@@ -607,7 +554,6 @@ export default function App() {
     }
   };
 
-  // ✅ Admin Login (NO localStorage saving)
   const handleAdminLogin = async () => {
     const result = await adminLogin({
       adminUsername,
@@ -629,7 +575,6 @@ export default function App() {
     setAdminAuthError("");
   };
 
-  // ✅ Admin Register (NO localStorage saving)
   const handleAdminRegister = async () => {
     const result = await adminRegister({
       adminUsername,
@@ -656,28 +601,38 @@ export default function App() {
     performAdminLogout();
     setAdminSession(null);
     setIsOwner(false);
-    localStorage.removeItem("wingi_admin_session");
+    try {
+      localStorage.removeItem("wingi_admin_session");
+    } catch {}
+    window.location.href = "/";
+  };
+
+  // optional: invoice print stub (so OrdersSection never crashes)
+  const printInvoice = (order) => {
+    // ضع هنا pdf/print logic إذا عندك
+    console.log("printInvoice:", order?.id);
   };
 
   // =========================
-  // [S09] ROUTES (مصحّح)
+  // [S09] ROUTES (NOW SAFE)
   // =========================
 
-  // ✅ ModeSelectionScreen فقط على /
-  if (isPortalRoute && appMode === "portal") {
+  // 1) Staff gate on "/"
+  if (isStaffGateRoute) {
     return (
       <LuxuryShell dir={adminLang === "ar" ? "rtl" : "ltr"} tone="dark">
-        <ModeSelectionScreen 
+        <ModeSelectionScreen
           admT={admT}
-          setAppMode={setAppMode}
           adminLang={adminLang}
           setAdminLang={setAdminLang}
+          onGoAdmin={() => (window.location.href = "/admin")}
+          onGoCashier={() => (window.location.href = "/cashier")}
         />
       </LuxuryShell>
     );
   }
 
-  // ✅ /cashier: دخول الكاشير مباشرة
+  // 2) Cashier
   if (isCashierRoute) {
     if (!cashierSession) {
       return (
@@ -686,12 +641,14 @@ export default function App() {
             db={db}
             appId={appId}
             adminLang={adminLang}
-            onBack={() => {
-              window.location.href = "/"; // يرجع للـ Portal
-            }}
+            cashierAuthError={cashierAuthError}
+            setCashierAuthError={setCashierAuthError}
+            onBack={() => (window.location.href = "/")}
             onLogin={(session) => {
               setCashierSession(session);
-              localStorage.setItem("wingi_cashier_session", JSON.stringify(session));
+              try {
+                localStorage.setItem("wingi_cashier_session", JSON.stringify(session));
+              } catch {}
             }}
           />
         </LuxuryShell>
@@ -703,11 +660,16 @@ export default function App() {
         <CashierPage
           db={db}
           appId={appId}
-          cashierSession={cashierSession}
           adminLang={adminLang}
           CURRENCY={CURRENCY}
+          cashierSession={cashierSession}
+          // ✅ give cashier ability to change table state
+          setTableStatus={setTableStatus}
+          tablesColPath={tablesColPath}
           onLogout={() => {
-            localStorage.removeItem("wingi_cashier_session");
+            try {
+              localStorage.removeItem("wingi_cashier_session");
+            } catch {}
             setCashierSession(null);
             window.location.href = "/";
           }}
@@ -716,7 +678,7 @@ export default function App() {
     );
   }
 
-  // ✅ /admin: دخول الأدمن مباشرة (بدون تذكّر)
+  // 3) Admin
   if (isAdminRoute) {
     if (!adminSession) {
       return (
@@ -746,7 +708,6 @@ export default function App() {
         setAdminLang={setAdminLang}
         adminSession={adminSession}
         adminLogout={adminLogout}
-        setAppMode={setAppMode}
         setAccountsOpen={setAccountsOpen}
         setCreateOrderOpen={setCreateOrderOpen}
         cashDiscountPercent={cashDiscountPercent}
@@ -758,14 +719,21 @@ export default function App() {
         db={db}
         doc={doc}
         setDoc={setDoc}
-        inventoryAlerts={inventoryAlerts}
         admT={admT}
       >
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          <Sidebar adminPage={adminPage} setAdminPage={setAdminPage} />
+          <Sidebar
+            adminPage={adminPage}
+            setAdminPage={setAdminPage}
+            admT={admT}
+            adminLang={adminLang}
+            adminSession={adminSession}
+          />
 
           <section className="xl:col-span-9 space-y-6">
-            {adminPage === "menu" && <MenuSection menuItems={menuItems} admT={admT} adminLang={adminLang} db={db} appId={appId} />}
+            {adminPage === "menu" && (
+              <MenuSection menuItems={menuItems} admT={admT} adminLang={adminLang} db={db} appId={appId} />
+            )}
 
             {adminPage === "orders" && (
               <OrdersSection
@@ -782,10 +750,14 @@ export default function App() {
                 setOldFilterError={setOldFilterError}
                 markOrder={markOrder}
                 deleteOrderPermanently={deleteOrderPermanently}
+                printInvoice={printInvoice}
                 getPayLabel={getPayLabel}
-                setReceiptView={setReceiptView}
-                setReceiptOpen={setReceiptOpen}
                 CURRENCY={CURRENCY}
+                admT={admT}
+                adminLang={adminLang}
+                db={db}
+                appId={appId}
+                adminSession={adminSession}
               />
             )}
 
@@ -793,17 +765,13 @@ export default function App() {
 
             {adminPage === "finance" && <FinanceSection orders={orders} menuItems={menuItems} inventory={inventory} CURRENCY={CURRENCY} />}
 
-            {adminPage === "accounting" && (
-              <AccountingSection journalEntries={journalEntries} CURRENCY={CURRENCY} accSettings={accSettings} accounts={accounts} lang={lang} />
-            )}
+            {adminPage === "accounting" && <AccountingSection journalEntries={journalEntries} CURRENCY={CURRENCY} accSettings={{}} accounts={accounts} lang={lang} />}
 
-            {adminPage === "reports" && (
-              <ReportsSection journalEntries={journalEntries} CURRENCY={CURRENCY} accSettings={accSettings} accounts={accounts} lang={lang} />
-            )}
+            {adminPage === "reports" && <ReportsSection journalEntries={journalEntries} CURRENCY={CURRENCY} accSettings={{}} accounts={accounts} lang={lang} />}
 
-            {adminPage === "balanceSheet" && <BalanceSheetSection journalEntries={journalEntries} accSettings={accSettings} CURRENCY={CURRENCY} />}
+            {adminPage === "balanceSheet" && <BalanceSheetSection journalEntries={journalEntries} accSettings={{}} CURRENCY={CURRENCY} />}
 
-            {adminPage === "cashFlow" && <CashFlowSection journalEntries={journalEntries} accSettings={accSettings} CURRENCY={CURRENCY} />}
+            {adminPage === "cashFlow" && <CashFlowSection journalEntries={journalEntries} accSettings={{}} CURRENCY={CURRENCY} />}
 
             {adminPage === "invoices" && <InvoicesSection invoices={invoices} customers={customers} db={db} appId={appId} CURRENCY={CURRENCY} />}
 
@@ -811,42 +779,102 @@ export default function App() {
 
             {adminPage === "vendors" && <VendorsSection vendors={vendors} db={db} appId={appId} CURRENCY={CURRENCY} />}
 
-            {adminPage === "bills" && (
-              <BillsSection bills={bills} vendors={vendors} inventory={inventory} db={db} appId={appId} CURRENCY={CURRENCY} />
-            )}
+            {adminPage === "bills" && <BillsSection bills={bills} vendors={vendors} inventory={inventory} db={db} appId={appId} CURRENCY={CURRENCY} />}
 
             {adminPage === "settings" && (
-              <SettingsSection accSettings={accSettings} accounts={accounts} db={db} appId={appId} ownerConfig={ownerConfig} adminSession={adminSession} />
+              <SettingsSection
+                accSettings={{}}
+                accounts={accounts}
+                db={db}
+                appId={appId}
+                ownerConfig={ownerConfig}
+                adminSession={adminSession}
+                admT={admT}
+                adminLang={adminLang}
+              />
             )}
+
+            {adminPage === "staff" && (
+  <StaffSection
+    db={db}
+    appId={appId}
+    adminSession={adminSession}
+    admT={admT}
+    adminLang={adminLang}
+  />
+)}
+
+{adminPage === "percentages" && (
+  <PercentagesSection
+    db={db}
+    appId={appId}
+    adminSession={adminSession}
+    admT={admT}
+    adminLang={adminLang}
+  />
+)}
+
           </section>
         </div>
 
         {createOrderOpen && (
-          <CreateOrderModal isOpen={createOrderOpen} onClose={() => setCreateOrderOpen(false)} menuItems={menuItems} db={db} appId={appId} CURRENCY={CURRENCY} />
+          <CreateOrderModal
+            isOpen={createOrderOpen}
+            onClose={() => setCreateOrderOpen(false)}
+            menuItems={menuItems}
+            db={db}
+            appId={appId}
+            CURRENCY={CURRENCY}
+          />
         )}
 
         {vipOpen && (
-          <VipModal isOpen={vipOpen} onClose={() => setVipOpen(false)} vipList={vipList} db={db} vipCustomersColPath={vipCustomersColPath} />
+          <VipModal
+            isOpen={vipOpen}
+            onClose={() => setVipOpen(false)}
+            vipList={vipList}
+            db={db}
+            vipCustomersColPath={vipCustomersColPath}
+          />
         )}
       </AdminLayout>
     );
   }
 
-  // =========================
-  // [S10] Customer route returns
-  // =========================
-  if (appMode === "customer" && view === "selection") {
-    return <TableSelection t={t} lang={lang} setLang={setLang} table={table} setTable={setTable} handleStartOrder={handleStartOrder} />;
+  // 4) Customer /tables
+  if (isCustomerTablesRoute) {
+    return (
+      <TableSelection
+        t={t}
+        lang={lang}
+        setLang={setLang}
+        table={table}
+        setTable={setTable}
+        handleStartOrder={handleCustomerChooseTable}
+      />
+    );
   }
 
-  if (appMode === "customer" && view === "menu") {
+  // 5) Customer /menu
+  if (isCustomerMenuRoute) {
+    if (!table) {
+      // try load from storage
+      const saved = loadPersistedTable();
+      if (saved) {
+        setTable(saved);
+      } else {
+        window.location.href = "/tables";
+        return null;
+      }
+    }
+
     return (
       <>
         <Menu
           t={t}
           lang={lang}
           table={table}
-          setView={setView}
+          setView={() => {}}
           cart={cart}
           setIsCartOpen={setIsCartOpen}
           categories={categories}
@@ -907,7 +935,7 @@ export default function App() {
               </div>
             </div>
 
-            <h2 className="text-4xl font-black text-slate-950 mb-4">{t.orderSuccess}</h2>
+            <h2 className="text-4xl font-black text-slate-950 mb-4">{t.orderSuccess || "تم إرسال الطلب"}</h2>
 
             <div className="bg-slate-50 px-8 py-4 rounded-3xl mb-12">
               <p className="text-slate-500 font-bold">
@@ -927,5 +955,7 @@ export default function App() {
     );
   }
 
+  // fallback
+  if (typeof window !== "undefined") window.location.href = "/";
   return null;
 }

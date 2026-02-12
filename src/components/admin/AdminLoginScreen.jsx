@@ -1,14 +1,15 @@
 // ===============================
-// AdminLoginScreen.jsx - محسّن
-// Features: Full Translation
+// AdminLoginScreen.jsx - Improved
+// Add: Back button + Remember me (optional)
 // ===============================
 
 import React from "react";
-import { Lock, User, Key } from "lucide-react";
+import { Lock, User, Key, ArrowLeft, Check } from "lucide-react";
 
 export const AdminLoginScreen = ({
   admT,
   adminLang,
+  setAdminLang, // ✅ مهم: أنت تستخدمها تحت
   adminAuthMode,
   setAdminAuthMode,
   adminUsername,
@@ -19,11 +20,34 @@ export const AdminLoginScreen = ({
   setOwnerPin,
   adminAuthError,
   handleAdminLogin,
-  handleAdminRegister
+  handleAdminRegister,
+
+  // ✅ جديد (اختياري)
+  rememberAdmin,
+  setRememberAdmin,
+  onBack,
 }) => {
+  const goBack = () => {
+    if (onBack) return onBack();
+    window.location.href = "/";
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-md">
+        {/* Top actions */}
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={goBack}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 font-black text-xs"
+          >
+            <ArrowLeft size={16} />
+            {admT?.back || "رجوع"}
+          </button>
+
+          
+        </div>
+
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-md flex items-center justify-center mx-auto mb-4">
@@ -31,10 +55,9 @@ export const AdminLoginScreen = ({
           </div>
           <h1 className="text-4xl font-black text-white mb-2">{admT?.brand || "Wingi"}</h1>
           <p className="text-white/60 font-bold">
-            {adminAuthMode === "login" 
-              ? (admT?.adminLogin || "Admin Login")
-              : (admT?.adminRegister || "Create Admin")
-            }
+            {adminAuthMode === "login"
+              ? (admT?.adminLogin || "تسجيل دخول الإدارة")
+              : (admT?.adminRegister || "إنشاء حساب إدارة")}
           </p>
         </div>
 
@@ -44,14 +67,14 @@ export const AdminLoginScreen = ({
             {/* Username */}
             <div>
               <label className="block text-xs font-bold text-white/80 mb-1">
-                {admT?.username || "Username"}
+                {admT?.username || "اسم المستخدم"}
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" size={16} />
                 <input
                   value={adminUsername}
                   onChange={(e) => setAdminUsername(e.target.value)}
-                  placeholder={admT?.username || "Username"}
+                  placeholder={admT?.username || "اسم المستخدم"}
                   className="w-full pl-10 pr-3 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 outline-none font-bold text-sm"
                 />
               </div>
@@ -60,14 +83,14 @@ export const AdminLoginScreen = ({
             {/* Password */}
             <div>
               <label className="block text-xs font-bold text-white/80 mb-1">
-                {admT?.password || "Password"}
+                {admT?.password || "كلمة المرور"}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" size={16} />
                 <input
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
-                  placeholder={admT?.password || "Password"}
+                  placeholder={admT?.password || "كلمة المرور"}
                   type="password"
                   className="w-full pl-10 pr-3 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 outline-none font-bold text-sm"
                 />
@@ -78,19 +101,37 @@ export const AdminLoginScreen = ({
             {adminAuthMode === "register" && (
               <div>
                 <label className="block text-xs font-bold text-white/80 mb-1">
-                  {admT?.ownerPin || "Owner PIN"}
+                  {admT?.ownerPin || "PIN المالك"}
                 </label>
                 <div className="relative">
                   <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50" size={16} />
                   <input
                     value={ownerPin}
                     onChange={(e) => setOwnerPin(e.target.value)}
-                    placeholder={admT?.ownerPin || "Owner PIN"}
+                    placeholder={admT?.ownerPin || "PIN المالك"}
                     type="password"
                     className="w-full pl-10 pr-3 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 outline-none font-bold text-sm"
                   />
                 </div>
               </div>
+            )}
+
+            {/* Remember me (optional) */}
+            {typeof rememberAdmin !== "undefined" && typeof setRememberAdmin === "function" && (
+              <button
+                type="button"
+                onClick={() => setRememberAdmin(!rememberAdmin)}
+                className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 font-black text-sm"
+              >
+                <span>{admT?.rememberMe || "تذكرني على هذا الجهاز"}</span>
+                <span
+                  className={`w-6 h-6 rounded-lg flex items-center justify-center border ${
+                    rememberAdmin ? "bg-emerald-500 border-emerald-500 text-white" : "border-white/30 text-white/50"
+                  }`}
+                >
+                  {rememberAdmin ? <Check size={16} /> : null}
+                </span>
+              </button>
             )}
 
             {/* Error */}
@@ -105,7 +146,7 @@ export const AdminLoginScreen = ({
               onClick={adminAuthMode === "login" ? handleAdminLogin : handleAdminRegister}
               className="w-full py-3 rounded-xl font-black bg-orange-600 hover:bg-orange-500 text-white"
             >
-              {adminAuthMode === "login" ? (admT?.login || "Login") : (admT?.createAccount || "Create")}
+              {adminAuthMode === "login" ? (admT?.login || "دخول") : (admT?.createAccount || "إنشاء")}
             </button>
 
             {/* Toggle */}
@@ -113,28 +154,10 @@ export const AdminLoginScreen = ({
               onClick={() => setAdminAuthMode(adminAuthMode === "login" ? "register" : "login")}
               className="w-full py-2 rounded-xl font-bold bg-white/10 hover:bg-white/15 text-white/80 text-sm"
             >
-              {adminAuthMode === "login" 
-                ? (admT?.adminRegister || "Create Account") 
-                : (admT?.adminLogin || "Login")
-              }
+              {adminAuthMode === "login"
+                ? (admT?.adminRegister || "إنشاء حساب")
+                : (admT?.adminLogin || "تسجيل دخول")}
             </button>
-          </div>
-        </div>
-
-        {/* Language */}
-        <div className="mt-6 flex justify-center">
-          <div className="flex bg-white/10 border border-white/10 backdrop-blur-md p-1 rounded-xl gap-1">
-            {["ar", "tr", "en"].map((l) => (
-              <button
-                key={l}
-                onClick={() => setAdminLang(l)}
-                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase ${
-                  adminLang === l ? "bg-white text-slate-950" : "text-white/60"
-                }`}
-              >
-                {l}
-              </button>
-            ))}
           </div>
         </div>
       </div>
