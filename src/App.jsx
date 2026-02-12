@@ -1,5 +1,5 @@
 // ===============================
-// App.jsx (Full + Fixed)
+// App.jsx (Full + Fixed) + Cashier Route + NO Admin Remember
 // ===============================
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -21,10 +21,15 @@ import { CheckCircle } from "lucide-react";
 
 // UI Components
 import { LuxuryShell } from "./components/shared/LuxuryShell";
-import { PortalScreen } from "./components/admin/PortalScreen";
+import { ModeSelectionScreen } from "./components/shared/ModeSelectionScreen"; // ✅ مرة واحدة فقط
+
 import { AdminLoginScreen } from "./components/admin/AdminLoginScreen";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import { Sidebar } from "./components/admin/Sidebar";
+
+// Cashier
+import { CashierLogin } from "./components/cashier/CashierLogin";
+import { CashierPage } from "./components/cashier/CashierPage";
 
 import { MenuSection } from "./components/admin/MenuSection";
 import { OrdersSection } from "./components/admin/OrdersSection";
@@ -63,37 +68,24 @@ import "./App.css";
 
 export default function App() {
   // =========================
-  // [S02] Router & Mode
+  // [S02] Route
   // =========================
   const path = typeof window !== "undefined" ? window.location.pathname : "/";
   const isAdminRoute = path.startsWith("/admin");
+  const isCashierRoute = path.startsWith("/cashier");
+  const isPortalRoute = path === "/" || path.startsWith("/portal"); // ✅ Portal فقط هنا
 
   // =========================
   // [S03] State
   // =========================
- 
-// بهذا:
-const [appMode, setAppMode] = useState(() => {
-  // إذا كان في صفحة admin وفيه session محفوظ، ارجع "admin"
-  if (isAdminRoute) {
-    const savedSession = localStorage.getItem("wingi_admin_session");
-    if (savedSession) {
-      return "admin"; // يرجع مباشرة للـ admin
-    }
-    return "portal"; // لو ما فيه session، يرجع للـ portal
-  }
-  return "customer";
-});
+  const [appMode, setAppMode] = useState(() => {
+    // على /admin أو /cashier ما نستخدم portal نهائيًا (حتى ما يعلق)
+    if (isAdminRoute) return "admin";
+    if (isCashierRoute) return "cashier";
+    if (isPortalRoute) return "portal";
+    return "customer";
+  });
 
-// وعدّل دالة setAppMode لحفظها في localStorage:
-const handleSetAppMode = (mode) => {
-  setAppMode(mode);
-  if (mode === "admin") {
-    localStorage.setItem("wingi_app_mode", "admin");
-  } else {
-    localStorage.removeItem("wingi_app_mode");
-  }
-};
   const [user, setUser] = useState(null);
 
   // Languages
@@ -124,6 +116,10 @@ const handleSetAppMode = (mode) => {
   const [ownerPin, setOwnerPin] = useState("");
   const [adminAuthError, setAdminAuthError] = useState("");
   const [ownerConfig, setOwnerConfig] = useState(null);
+
+  // Cashier auth
+  const [cashierSession, setCashierSession] = useState(null);
+  const [cashierAuthError, setCashierAuthError] = useState("");
 
   // Admin UI
   const [adminPage, setAdminPage] = useState("menu");
@@ -170,7 +166,7 @@ const handleSetAppMode = (mode) => {
   const [applyOldFilter, setApplyOldFilter] = useState(false);
   const [oldFilterError, setOldFilterError] = useState("");
 
-  // Admin receipt modal state (for OrdersSection)
+  // Admin receipt modal state
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [receiptView, setReceiptView] = useState(null);
 
@@ -246,72 +242,6 @@ const handleSetAppMode = (mode) => {
     }
   };
 
-  const printInvoice = (order) => {
-    try {
-      if (!order) return;
-
-      const itemsHtml = (order.items || [])
-        .map(
-          (it) => `
-          <tr>
-            <td style="padding:6px 8px;border-bottom:1px solid #eee;">${
-              it.nameAr || it.nameEn || it.nameTr || it.name || "-"
-            }</td>
-            <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center;">${
-              it.quantity || 1
-            }</td>
-            <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:right;">${
-              (it.price || 0).toFixed(2)
-            } ${CURRENCY}</td>
-          </tr>`
-        )
-        .join("");
-
-      const html = `
-      <html>
-      <head>
-        <title>Invoice</title>
-        <meta charset="utf-8" />
-      </head>
-      <body style="font-family:Arial; padding:24px;">
-        <h2 style="margin:0 0 10px;">Invoice</h2>
-        <div style="margin-bottom:10px;">Table: <b>${order.table || "-"}</b></div>
-        <div style="margin-bottom:16px;">Date: ${new Date(order.timestamp || Date.now()).toLocaleString()}</div>
-
-        <table style="width:100%; border-collapse:collapse;">
-          <thead>
-            <tr>
-              <th style="text-align:left;padding:6px 8px;border-bottom:2px solid #333;">Item</th>
-              <th style="text-align:center;padding:6px 8px;border-bottom:2px solid #333;">Qty</th>
-              <th style="text-align:right;padding:6px 8px;border-bottom:2px solid #333;">Price</th>
-            </tr>
-          </thead>
-          <tbody>${itemsHtml}</tbody>
-        </table>
-
-        <div style="margin-top:16px; text-align:right;">
-          <div>Subtotal: <b>${(order.total || 0).toFixed(2)} ${CURRENCY}</b></div>
-          <div>Tax: <b>${(order.taxAmount || 0).toFixed(2)} ${CURRENCY}</b></div>
-          <div style="font-size:18px;margin-top:8px;">
-            Total: <b>${(order.totalWithTax || (order.total || 0)).toFixed(2)} ${CURRENCY}</b>
-          </div>
-        </div>
-
-        <script>window.onload = () => window.print();</script>
-      </body>
-      </html>
-      `;
-
-      const w = window.open("", "_blank", "width=900,height=700");
-      if (!w) return;
-      w.document.open();
-      w.document.write(html);
-      w.document.close();
-    } catch (e) {
-      console.error("printInvoice error:", e);
-    }
-  };
-
   // =========================
   // [S06] Effects
   // =========================
@@ -325,6 +255,17 @@ const handleSetAppMode = (mode) => {
     };
     initAuth();
     return onAuthStateChanged(auth, setUser);
+  }, []);
+
+  // ✅ Load cashier session (remember cashier فقط)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = localStorage.getItem("wingi_cashier_session");
+    if (!raw) return;
+    try {
+      const s = JSON.parse(raw);
+      setCashierSession(s);
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -373,34 +314,10 @@ const handleSetAppMode = (mode) => {
         });
         return;
       }
-
-      const data = snap.data() || {};
-      if (typeof data.cashDiscountPercent !== "number" || typeof data.taxPercent !== "number") {
-        await setDoc(
-          ref,
-          {
-            cashDiscountPercent: Number(data.cashDiscountPercent || 0),
-            taxPercent: Number(data.taxPercent || 0),
-            updatedAt: Date.now(),
-          },
-          { merge: true }
-        );
-      }
     };
 
     ensureFinance();
   }, [user]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const raw = localStorage.getItem("wingi_admin_session");
-    if (!raw) return;
-    try {
-      const s = JSON.parse(raw);
-      setAdminSession(s);
-      setIsOwner(s?.role === "owner");
-    } catch {}
-  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -412,27 +329,12 @@ const handleSetAppMode = (mode) => {
 
   useEffect(() => {
     if (!user) return;
-    if (!adminSession) return;
-
-    const unsub = onSnapshot(collection(db, ...vipCustomersColPath), (snap) => {
-      const arr = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      arr.sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
-      setVipList(arr);
-    });
-
-    return () => unsub();
-  }, [user, adminSession]);
-
-  useEffect(() => {
-    if (!user) return;
-
     const unsub = onSnapshot(doc(db, ...financeDocPath), (snap) => {
       if (!snap.exists()) return;
       const d = snap.data() || {};
       setCashDiscountPercent(Number(d.cashDiscountPercent || 0));
       setTaxPercent(Number(d.taxPercent || 0));
     });
-
     return () => unsub();
   }, [user]);
 
@@ -459,7 +361,11 @@ const handleSetAppMode = (mode) => {
     );
 
     const unsubJournal = onSnapshot(
-      query(collection(db, "artifacts", appId, "public", "data", "journalEntries"), orderBy("createdAt", "desc"), limit(50)),
+      query(
+        collection(db, "artifacts", appId, "public", "data", "journalEntries"),
+        orderBy("createdAt", "desc"),
+        limit(50)
+      ),
       (snap) => setJournalEntries(snap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) })))
     );
 
@@ -599,7 +505,17 @@ const handleSetAppMode = (mode) => {
     };
 
     if (lang === "ar") return pick(item, [`${key}Ar`, `${key}_ar`, `${key}AR`, key]);
-    if (lang === "tr") return pick(item, [`${key}Tr`, `${key}_tr`, `${key}TR`, `${key}En`, `${key}_en`, `${key}Ar`, `${key}_ar`, key]);
+    if (lang === "tr")
+      return pick(item, [
+        `${key}Tr`,
+        `${key}_tr`,
+        `${key}TR`,
+        `${key}En`,
+        `${key}_en`,
+        `${key}Ar`,
+        `${key}_ar`,
+        key,
+      ]);
     return pick(item, [`${key}En`, `${key}_en`, `${key}Ar`, `${key}_ar`, key]);
   };
 
@@ -691,6 +607,7 @@ const handleSetAppMode = (mode) => {
     }
   };
 
+  // ✅ Admin Login (NO localStorage saving)
   const handleAdminLogin = async () => {
     const result = await adminLogin({
       adminUsername,
@@ -709,10 +626,10 @@ const handleSetAppMode = (mode) => {
 
     setAdminSession(result.session);
     setIsOwner(result.session.role === "owner");
-    localStorage.setItem("wingi_admin_session", JSON.stringify(result.session));
     setAdminAuthError("");
   };
 
+  // ✅ Admin Register (NO localStorage saving)
   const handleAdminRegister = async () => {
     const result = await adminRegister({
       adminUsername,
@@ -732,7 +649,6 @@ const handleSetAppMode = (mode) => {
 
     setAdminSession(result.session);
     setIsOwner(false);
-    localStorage.setItem("wingi_admin_session", JSON.stringify(result.session));
     setAdminAuthError("");
   };
 
@@ -744,39 +660,86 @@ const handleSetAppMode = (mode) => {
   };
 
   // =========================
-  // [S09] Admin route returns
+  // [S09] ROUTES (مصحّح)
   // =========================
-  if (isAdminRoute && appMode === "portal") {
-    return (
-      <LuxuryShell dir={adminLang === "ar" ? "rtl" : "ltr"} tone="dark">
-        <PortalScreen admT={admT} setAppMode={setAppMode} adminLang={adminLang} setAdminLang={setAdminLang} />
-      </LuxuryShell>
-    );
-  }
 
-  if (isAdminRoute && appMode === "admin" && !adminSession) {
+  // ✅ ModeSelectionScreen فقط على /
+  if (isPortalRoute && appMode === "portal") {
     return (
       <LuxuryShell dir={adminLang === "ar" ? "rtl" : "ltr"} tone="dark">
-        <AdminLoginScreen
+        <ModeSelectionScreen 
           admT={admT}
+          setAppMode={setAppMode}
           adminLang={adminLang}
-          adminAuthMode={adminAuthMode}
-          setAdminAuthMode={setAdminAuthMode}
-          adminUsername={adminUsername}
-          setAdminUsername={setAdminUsername}
-          adminPassword={adminPassword}
-          setAdminPassword={setAdminPassword}
-          ownerPin={ownerPin}
-          setOwnerPin={setOwnerPin}
-          adminAuthError={adminAuthError}
-          handleAdminLogin={handleAdminLogin}
-          handleAdminRegister={handleAdminRegister}
+          setAdminLang={setAdminLang}
         />
       </LuxuryShell>
     );
   }
 
-  if (isAdminRoute && appMode === "admin" && adminSession) {
+  // ✅ /cashier: دخول الكاشير مباشرة
+  if (isCashierRoute) {
+    if (!cashierSession) {
+      return (
+        <LuxuryShell dir={adminLang === "ar" ? "rtl" : "ltr"} tone="dark">
+          <CashierLogin
+            db={db}
+            appId={appId}
+            adminLang={adminLang}
+            onBack={() => {
+              window.location.href = "/"; // يرجع للـ Portal
+            }}
+            onLogin={(session) => {
+              setCashierSession(session);
+              localStorage.setItem("wingi_cashier_session", JSON.stringify(session));
+            }}
+          />
+        </LuxuryShell>
+      );
+    }
+
+    return (
+      <LuxuryShell dir={adminLang === "ar" ? "rtl" : "ltr"} tone="dark">
+        <CashierPage
+          db={db}
+          appId={appId}
+          cashierSession={cashierSession}
+          adminLang={adminLang}
+          CURRENCY={CURRENCY}
+          onLogout={() => {
+            localStorage.removeItem("wingi_cashier_session");
+            setCashierSession(null);
+            window.location.href = "/";
+          }}
+        />
+      </LuxuryShell>
+    );
+  }
+
+  // ✅ /admin: دخول الأدمن مباشرة (بدون تذكّر)
+  if (isAdminRoute) {
+    if (!adminSession) {
+      return (
+        <LuxuryShell dir={adminLang === "ar" ? "rtl" : "ltr"} tone="dark">
+          <AdminLoginScreen
+            admT={admT}
+            adminLang={adminLang}
+            adminAuthMode={adminAuthMode}
+            setAdminAuthMode={setAdminAuthMode}
+            adminUsername={adminUsername}
+            setAdminUsername={setAdminUsername}
+            adminPassword={adminPassword}
+            setAdminPassword={setAdminPassword}
+            ownerPin={ownerPin}
+            setOwnerPin={setOwnerPin}
+            adminAuthError={adminAuthError}
+            handleAdminLogin={handleAdminLogin}
+            handleAdminRegister={handleAdminRegister}
+          />
+        </LuxuryShell>
+      );
+    }
+
     return (
       <AdminLayout
         adminLang={adminLang}
@@ -818,7 +781,6 @@ const handleSetAppMode = (mode) => {
                 oldFilterError={oldFilterError}
                 setOldFilterError={setOldFilterError}
                 markOrder={markOrder}
-                printInvoice={printInvoice}
                 deleteOrderPermanently={deleteOrderPermanently}
                 getPayLabel={getPayLabel}
                 setReceiptView={setReceiptView}
@@ -860,17 +822,12 @@ const handleSetAppMode = (mode) => {
         </div>
 
         {createOrderOpen && (
-          <CreateOrderModal
-            isOpen={createOrderOpen}
-            onClose={() => setCreateOrderOpen(false)}
-            menuItems={menuItems}
-            db={db}
-            appId={appId}
-            CURRENCY={CURRENCY}
-          />
+          <CreateOrderModal isOpen={createOrderOpen} onClose={() => setCreateOrderOpen(false)} menuItems={menuItems} db={db} appId={appId} CURRENCY={CURRENCY} />
         )}
 
-        {vipOpen && <VipModal isOpen={vipOpen} onClose={() => setVipOpen(false)} vipList={vipList} db={db} vipCustomersColPath={vipCustomersColPath} />}
+        {vipOpen && (
+          <VipModal isOpen={vipOpen} onClose={() => setVipOpen(false)} vipList={vipList} db={db} vipCustomersColPath={vipCustomersColPath} />
+        )}
       </AdminLayout>
     );
   }
@@ -966,22 +923,6 @@ const handleSetAppMode = (mode) => {
             </button>
           </div>
         )}
-
-        <style
-          dangerouslySetInnerHTML={{
-            __html: `
-              @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700;900&display=swap');
-              body { font-family: 'Noto Sans Arabic', sans-serif; }
-              .no-scrollbar::-webkit-scrollbar { display: none; }
-              input[type="number"]::-webkit-outer-spin-button,
-              input[type="number"]::-webkit-inner-spin-button {
-                -webkit-appearance: none;
-                margin: 0;
-              }
-              input[type="number"] { -moz-appearance: textfield; }
-            `,
-          }}
-        />
       </>
     );
   }

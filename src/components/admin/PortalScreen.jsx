@@ -6,7 +6,7 @@
 import React from "react";
 import { Utensils, LayoutDashboard, User, ArrowRight } from "lucide-react";
 
-export const PortalScreen = ({ admT, setAppMode, adminLang, setAdminLang }) => {
+export const ModeSelectionScreen  = ({ admT, setAppMode, adminLang, setAdminLang }) => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6">
       {/* Logo */}
