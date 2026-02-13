@@ -9,7 +9,7 @@ import { Lock, User, Key, ArrowLeft, Check } from "lucide-react";
 export const AdminLoginScreen = ({
   admT,
   adminLang,
-  setAdminLang, // ✅ مهم: أنت تستخدمها تحت
+  setAdminLang, // . مهم: أنت تستخدمها تحت
   adminAuthMode,
   setAdminAuthMode,
   adminUsername,
@@ -22,7 +22,7 @@ export const AdminLoginScreen = ({
   handleAdminLogin,
   handleAdminRegister,
 
-  // ✅ جديد (اختياري)
+  // . جديد (اختياري)
   rememberAdmin,
   setRememberAdmin,
   onBack,

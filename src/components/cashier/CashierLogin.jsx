@@ -4,10 +4,10 @@
 // ===============================
 
 import React, { useState } from "react";
-import { Eye, EyeOff, User, LogIn } from "lucide-react";
+import { Eye, EyeOff, User, LogIn, Lock } from "lucide-react";
 import { collection, query, where, getDocs } from "firebase/firestore";
 
-export const CashierLogin = ({ db, appId, onLogin, onBack, adminLang }) => {
+export const CashierLogin = ({ db, appId, onLogin, onBack, adminLang = "ar" }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -72,7 +72,7 @@ export const CashierLogin = ({ db, appId, onLogin, onBack, adminLang }) => {
     setLoading(true);
 
     try {
-      // Check in staff collection
+      // البحث في جدول الموظفين
       const staffQuery = query(
         collection(db, "artifacts", appId, "public", "data", "staff"),
         where("username", "==", username.trim())
@@ -89,25 +89,26 @@ export const CashierLogin = ({ db, appId, onLogin, onBack, adminLang }) => {
       const staffDoc = staffSnapshot.docs[0];
       const staffData = staffDoc.data();
 
-      // Check password
+      // التحقق من كلمة المرور
       if (staffData.password !== password.trim()) {
         setError(admT.incorrectCredentials);
         setLoading(false);
         return;
       }
 
-      // Check if active
+      // التحقق من الحساب نشط
       if (staffData.isActive === false) {
         setError(admT.accountInactive);
         setLoading(false);
         return;
       }
 
-      // Login successful
+      // تسجيل الدخول ناجح
       onLogin({
         id: staffDoc.id,
         username: staffData.username,
         role: staffData.role || "cashier",
+        fullName: staffData.fullName || staffData.username,
       });
     } catch (e) {
       console.error("Login error:", e);
@@ -122,21 +123,21 @@ export const CashierLogin = ({ db, appId, onLogin, onBack, adminLang }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6" dir={adminLang === "ar" ? "rtl" : "ltr"}>
       <div className="max-w-md w-full">
-        {/* Back Button */}
+        {/* زر الرجوع */}
         <button
           onClick={onBack}
-          className="text-slate-400 hover:text-white font-bold mb-6 flex items-center gap-2"
+          className={`text-slate-400 hover:text-white font-bold mb-6 flex items-center gap-2 ${adminLang === "ar" ? "" : "flex-row-reverse"}`}
         >
-          ← {admT.back}
+          {adminLang === "ar" ? "←" : "→"} {admT.back}
         </button>
 
-        {/* Login Card */}
+        {/* بطاقة تسجيل الدخول */}
         <div className="bg-white rounded-3xl p-8 shadow-2xl">
           <div className="text-center mb-8">
             <div className="w-16 h-16 rounded-2xl bg-orange-100 mx-auto mb-4 flex items-center justify-center">
-              <User size={32} className="text-orange-600" />
+              <Lock size={32} className="text-orange-600" />
             </div>
             <h2 className="text-3xl font-black text-slate-900 mb-2">
               {admT.cashierLogin}
@@ -150,7 +151,7 @@ export const CashierLogin = ({ db, appId, onLogin, onBack, adminLang }) => {
             </div>
           )}
 
-          {/* Username */}
+          {/* اسم المستخدم */}
           <div className="mb-4">
             <label className="block text-sm font-bold mb-2 text-slate-700">
               {admT.username}
@@ -165,18 +166,18 @@ export const CashierLogin = ({ db, appId, onLogin, onBack, adminLang }) => {
                 }}
                 onKeyPress={handleKeyPress}
                 placeholder={admT.enterUsername}
-                className="w-full p-4 pr-12 rounded-xl border-2 border-slate-200 font-bold focus:border-orange-600 focus:outline-none transition-all"
+                className={`w-full p-4 rounded-xl border-2 border-slate-200 font-bold focus:border-orange-600 focus:outline-none transition-all ${adminLang === "ar" ? "pr-12" : "pl-12"}`}
                 autoFocus
                 disabled={loading}
               />
               <User
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                className={`absolute top-1/2 -translate-y-1/2 text-slate-400 ${adminLang === "ar" ? "right-4" : "left-4"}`}
                 size={20}
               />
             </div>
           </div>
 
-          {/* Password */}
+          {/* كلمة المرور */}
           <div className="mb-6">
             <label className="block text-sm font-bold mb-2 text-slate-700">
               {admT.password}
@@ -191,20 +192,20 @@ export const CashierLogin = ({ db, appId, onLogin, onBack, adminLang }) => {
                 }}
                 onKeyPress={handleKeyPress}
                 placeholder={admT.enterPassword}
-                className="w-full p-4 pr-12 rounded-xl border-2 border-slate-200 font-bold focus:border-orange-600 focus:outline-none transition-all"
+                className={`w-full p-4 rounded-xl border-2 border-slate-200 font-bold focus:border-orange-600 focus:outline-none transition-all ${adminLang === "ar" ? "pr-12" : "pl-12"}`}
                 disabled={loading}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className={`absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 ${adminLang === "ar" ? "right-4" : "left-4"}`}
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
           </div>
 
-          {/* Login Button */}
+          {/* زر تسجيل الدخول */}
           <button
             onClick={handleLogin}
             disabled={loading}

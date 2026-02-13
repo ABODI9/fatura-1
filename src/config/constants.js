@@ -1,6 +1,6 @@
 // src/config/constants.js
 
-// ✅ Firebase config لازم يكون Export عشان firebase.js يستورده
+// . Firebase config لازم يكون Export عشان firebase.js يستورده
 export const firebaseConfig = {
   apiKey: "AIzaSyCQdSmyGXU7ckhrUzyrSIMDBZcreF9b-No",
   authDomain: "smart-restaurant-a7725.firebaseapp.com",

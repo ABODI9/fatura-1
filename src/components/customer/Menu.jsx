@@ -73,7 +73,7 @@ export const Menu = ({
         ))}
       </div>
 
-      {/* ✅ FULL WIDTH: شلنا max-w-7xl mx-auto */}
+      {/* . FULL WIDTH: شلنا max-w-7xl mx-auto */}
       <main className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
         {safeItems.map((item) => {
           const isOut = !!computedOutOfStock?.[item.id];

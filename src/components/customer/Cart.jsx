@@ -3,7 +3,7 @@ import { ShoppingCart, X, Minus, Plus, Banknote, CreditCard } from "lucide-react
 
 export const Cart = ({
   t,
-  lang = "ar", // ✅ جديد
+  lang = "ar", // . جديد
   isCartOpen,
   setIsCartOpen,
   cart = [],
@@ -22,7 +22,7 @@ export const Cart = ({
   handleCompleteOrder,
   CURRENCY = "TL",
 }) => {
-  // ✅ fallback: حتى لو نسيت تمرر getLocalizedValue من App ما ينهار
+  // . fallback: حتى لو نسيت تمرر getLocalizedValue من App ما ينهار
   const safeGetLocalizedValue =
     typeof getLocalizedValue === "function"
       ? getLocalizedValue

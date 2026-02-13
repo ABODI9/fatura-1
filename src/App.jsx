@@ -500,7 +500,7 @@ export default function App() {
     }
   };
 
-  // ✅ CUSTOMER starts table: link table <-> order (occupied)
+  // . CUSTOMER starts table: link table <-> order (occupied)
   const handleCustomerChooseTable = async (tableNumber) => {
     setTable(tableNumber);
     persistTable(tableNumber);
@@ -518,7 +518,7 @@ export default function App() {
     window.location.href = "/menu";
   };
 
-  // ✅ When customer completes order: create order + attach to table activeOrderId
+  // . When customer completes order: create order + attach to table activeOrderId
   const handleCompleteOrder = async () => {
     try {
       setOrderStatus("sending");
@@ -663,7 +663,7 @@ export default function App() {
           adminLang={adminLang}
           CURRENCY={CURRENCY}
           cashierSession={cashierSession}
-          // ✅ give cashier ability to change table state
+          // . give cashier ability to change table state
           setTableStatus={setTableStatus}
           tablesColPath={tablesColPath}
           onLogout={() => {

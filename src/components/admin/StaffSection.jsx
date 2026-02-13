@@ -1,6 +1,6 @@
 // ===============================
-// StaffSection.jsx - FIXED - إدارة الموظفين
-// Complete with inline Firebase operations
+// StaffSection.jsx - إدارة الموظفين والكاشير
+// Staff & Cashier Management Section
 // ===============================
 
 import React, { useState, useEffect } from "react";
@@ -10,426 +10,552 @@ import {
   updateDoc, 
   deleteDoc, 
   doc, 
-  onSnapshot,
-  query,
-  where,
-  getDocs
+  onSnapshot 
 } from "firebase/firestore";
 import { 
-  UserPlus, 
+  Users, 
+  Plus, 
   Edit2, 
   Trash2, 
   Eye, 
   EyeOff, 
-  Users,
-  CheckCircle,
-  XCircle
+  UserCheck, 
+  UserX, 
+  Shield,
+  DollarSign
 } from "lucide-react";
 
-export const StaffSection = ({ db, appId, admT, adminLang }) => {
+export const StaffSection = ({ db, appId, adminLang = "ar" }) => {
   const [staff, setStaff] = useState([]);
-  const [addModalOpen, setAddModalOpen] = useState(false);
-  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  // Add form state
-  const [newUsername, setNewUsername] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [newRole, setNewRole] = useState("cashier");
+  // Form state
+  const [formData, setFormData] = useState({
+    username: "",
+    password: "",
+    fullName: "",
+    role: "cashier",
+    phone: "",
+    salary: "",
+    isActive: true,
+  });
+
   const [showPassword, setShowPassword] = useState(false);
 
-  // Edit form state
-  const [editUsername, setEditUsername] = useState("");
-  const [editPassword, setEditPassword] = useState("");
-  const [editRole, setEditRole] = useState("cashier");
-  const [showEditPassword, setShowEditPassword] = useState(false);
+  const t = {
+    ar: {
+      staffManagement: "إدارة الموظفين",
+      addStaff: "إضافة موظف",
+      editStaff: "تعديل موظف",
+      username: "اسم المستخدم",
+      password: "كلمة المرور",
+      fullName: "الاسم الكامل",
+      role: "الدور الوظيفي",
+      phone: "رقم الهاتف",
+      salary: "الراتب",
+      active: "نشط",
+      inactive: "غير نشط",
+      cashier: "كاشير",
+      manager: "مدير",
+      admin: "مدير نظام",
+      save: "حفظ",
+      cancel: "إلغاء",
+      delete: "حذف",
+      edit: "تعديل",
+      confirmDelete: "هل أنت متأكد من حذف هذا الموظف؟",
+      noStaff: "لا يوجد موظفين",
+      addFirstStaff: "أضف أول موظف للبدء",
+      status: "الحالة",
+      actions: "الإجراءات",
+      enterUsername: "أدخل اسم المستخدم",
+      enterPassword: "أدخل كلمة المرور",
+      enterFullName: "أدخل الاسم الكامل",
+      enterPhone: "أدخل رقم الهاتف",
+      enterSalary: "أدخل الراتب",
+      optional: "اختياري",
+      required: "مطلوب",
+      showPassword: "إظهار كلمة المرور",
+      hidePassword: "إخفاء كلمة المرور",
+    },
+    en: {
+      staffManagement: "Staff Management",
+      addStaff: "Add Staff",
+      editStaff: "Edit Staff",
+      username: "Username",
+      password: "Password",
+      fullName: "Full Name",
+      role: "Role",
+      phone: "Phone Number",
+      salary: "Salary",
+      active: "Active",
+      inactive: "Inactive",
+      cashier: "Cashier",
+      manager: "Manager",
+      admin: "Admin",
+      save: "Save",
+      cancel: "Cancel",
+      delete: "Delete",
+      edit: "Edit",
+      confirmDelete: "Are you sure you want to delete this staff member?",
+      noStaff: "No staff members",
+      addFirstStaff: "Add your first staff member to get started",
+      status: "Status",
+      actions: "Actions",
+      enterUsername: "Enter username",
+      enterPassword: "Enter password",
+      enterFullName: "Enter full name",
+      enterPhone: "Enter phone number",
+      enterSalary: "Enter salary",
+      optional: "Optional",
+      required: "Required",
+      showPassword: "Show password",
+      hidePassword: "Hide password",
+    },
+    tr: {
+      staffManagement: "Personel Yönetimi",
+      addStaff: "Personel Ekle",
+      editStaff: "Personeli Düzenle",
+      username: "Kullanıcı Adı",
+      password: "Şifre",
+      fullName: "Tam Ad",
+      role: "Rol",
+      phone: "Telefon Numarası",
+      salary: "Maaş",
+      active: "Aktif",
+      inactive: "Pasif",
+      cashier: "Kasiyer",
+      manager: "Müdür",
+      admin: "Yönetici",
+      save: "Kaydet",
+      cancel: "İptal",
+      delete: "Sil",
+      edit: "Düzenle",
+      confirmDelete: "Bu personeli silmek istediğinizden emin misiniz?",
+      noStaff: "Personel yok",
+      addFirstStaff: "Başlamak için ilk personelinizi ekleyin",
+      status: "Durum",
+      actions: "İşlemler",
+      enterUsername: "Kullanıcı adını girin",
+      enterPassword: "Şifreyi girin",
+      enterFullName: "Tam adı girin",
+      enterPhone: "Telefon numarasını girin",
+      enterSalary: "Maaşı girin",
+      optional: "İsteğe Bağlı",
+      required: "Gerekli",
+      showPassword: "Şifreyi göster",
+      hidePassword: "Şifreyi gizle",
+    }
+  };
 
-  // Load staff from Firebase
+  const admT = t[adminLang] || t.ar;
+
+  // Load staff
   useEffect(() => {
     if (!db || !appId) return;
 
-    const staffRef = collection(db, "artifacts", appId, "public", "data", "staff");
-    
-    const unsubscribe = onSnapshot(staffRef, (snapshot) => {
-      const staffList = [];
-      snapshot.forEach((doc) => {
-        staffList.push({ id: doc.id, ...doc.data() });
-      });
-      // Sort by newest first
-      staffList.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-      setStaff(staffList);
-    });
+    const unsubscribe = onSnapshot(
+      collection(db, "artifacts", appId, "public", "data", "staff"),
+      (snapshot) => {
+        const staffList = [];
+        snapshot.forEach((doc) => {
+          staffList.push({ id: doc.id, ...doc.data() });
+        });
+        setStaff(staffList);
+      }
+    );
 
     return () => unsubscribe();
   }, [db, appId]);
 
-  // =================== ADD STAFF ===================
-  const handleAddStaff = async () => {
-    if (!newUsername.trim()) {
-      alert(admT?.usernameRequired || "اسم المستخدم مطلوب");
+  const resetForm = () => {
+    setFormData({
+      username: "",
+      password: "",
+      fullName: "",
+      role: "cashier",
+      phone: "",
+      salary: "",
+      isActive: true,
+    });
+    setShowPassword(false);
+  };
+
+  const handleAdd = async () => {
+    if (!formData.username || !formData.password || !formData.fullName) {
+      alert("الرجاء ملء الحقول المطلوبة");
       return;
     }
 
-    if (!newPassword.trim()) {
-      alert(admT?.passwordRequired || "كلمة المرور مطلوبة");
-      return;
-    }
-
+    setLoading(true);
     try {
-      // Check if username already exists
-      const staffRef = collection(db, "artifacts", appId, "public", "data", "staff");
-      const q = query(staffRef, where("username", "==", newUsername.trim()));
-      const querySnapshot = await getDocs(q);
-      
-      if (!querySnapshot.empty) {
-        alert(admT?.usernameExists || "اسم المستخدم موجود مسبقاً");
-        return;
-      }
-
-      // Add new staff
-      await addDoc(staffRef, {
-        username: newUsername.trim(),
-        password: newPassword.trim(),
-        role: newRole,
-        isActive: true,
-        createdAt: Date.now()
-      });
-
-      alert(admT?.staffAdded || "تم إضافة الموظف بنجاح");
-      
-      // Reset form
-      setAddModalOpen(false);
-      setNewUsername("");
-      setNewPassword("");
-      setNewRole("cashier");
+      await addDoc(
+        collection(db, "artifacts", appId, "public", "data", "staff"),
+        {
+          ...formData,
+          createdAt: Date.now(),
+        }
+      );
+      resetForm();
+      setShowAddModal(false);
     } catch (error) {
       console.error("Error adding staff:", error);
-      alert("Error: " + error.message);
+      alert("حدث خطأ أثناء إضافة الموظف");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // =================== EDIT STAFF ===================
-  const openEditModal = (staffMember) => {
-    setSelectedStaff(staffMember);
-    setEditUsername(staffMember.username);
-    setEditPassword("");
-    setEditRole(staffMember.role || "cashier");
-    setEditModalOpen(true);
-  };
-
-  const handleUpdateStaff = async () => {
-    if (!editUsername.trim()) {
-      alert(admT?.usernameRequired || "اسم المستخدم مطلوب");
-      return;
-    }
-
+  const handleEdit = async () => {
+    if (!selectedStaff) return;
+    
+    setLoading(true);
     try {
-      // Check if username exists (excluding current staff)
-      const staffRef = collection(db, "artifacts", appId, "public", "data", "staff");
-      const q = query(staffRef, where("username", "==", editUsername.trim()));
-      const querySnapshot = await getDocs(q);
-      
-      const exists = querySnapshot.docs.some(doc => doc.id !== selectedStaff.id);
-      if (exists) {
-        alert(admT?.usernameExists || "اسم المستخدم موجود مسبقاً");
-        return;
-      }
-
-      // Update staff
-      const staffDocRef = doc(db, "artifacts", appId, "public", "data", "staff", selectedStaff.id);
-      
-      const updateData = {
-        username: editUsername.trim(),
-        role: editRole,
-        updatedAt: Date.now()
-      };
-
-      // Only update password if provided
-      if (editPassword.trim()) {
-        updateData.password = editPassword.trim();
-      }
-
-      await updateDoc(staffDocRef, updateData);
-
-      alert(admT?.staffUpdated || "تم تحديث الموظف بنجاح");
-      
-      // Reset form
-      setEditModalOpen(false);
+      const staffRef = doc(db, "artifacts", appId, "public", "data", "staff", selectedStaff.id);
+      await updateDoc(staffRef, {
+        ...formData,
+        updatedAt: Date.now(),
+      });
+      resetForm();
+      setShowEditModal(false);
       setSelectedStaff(null);
-      setEditUsername("");
-      setEditPassword("");
-      setEditRole("cashier");
     } catch (error) {
       console.error("Error updating staff:", error);
-      alert("Error: " + error.message);
+      alert("حدث خطأ أثناء تحديث الموظف");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // =================== DELETE STAFF ===================
-  const handleDeleteStaff = async (staffId) => {
-    if (!confirm(admT?.confirmDelete || "هل أنت متأكد من حذف هذا الموظف؟")) {
-      return;
-    }
+  const handleDelete = async (staffId) => {
+    if (!window.confirm(admT.confirmDelete)) return;
 
+    setLoading(true);
     try {
-      const staffDocRef = doc(db, "artifacts", appId, "public", "data", "staff", staffId);
-      await deleteDoc(staffDocRef);
-      
-      alert(admT?.staffDeleted || "تم حذف الموظف بنجاح");
+      await deleteDoc(doc(db, "artifacts", appId, "public", "data", "staff", staffId));
     } catch (error) {
       console.error("Error deleting staff:", error);
-      alert("Error: " + error.message);
+      alert("حدث خطأ أثناء حذف الموظف");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openEditModal = (staffMember) => {
+    setSelectedStaff(staffMember);
+    setFormData({
+      username: staffMember.username,
+      password: staffMember.password,
+      fullName: staffMember.fullName,
+      role: staffMember.role || "cashier",
+      phone: staffMember.phone || "",
+      salary: staffMember.salary || "",
+      isActive: staffMember.isActive !== false,
+    });
+    setShowEditModal(true);
+  };
+
+  const toggleStatus = async (staffMember) => {
+    setLoading(true);
+    try {
+      const staffRef = doc(db, "artifacts", appId, "public", "data", "staff", staffMember.id);
+      await updateDoc(staffRef, {
+        isActive: !staffMember.isActive,
+        updatedAt: Date.now(),
+      });
+    } catch (error) {
+      console.error("Error toggling status:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={adminLang === "ar" ? "rtl" : "ltr"}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-black flex items-center gap-3">
-          <Users className="text-orange-600" size={28} />
-          {admT?.staffSection || "إدارة الموظفين"}
-        </h2>
-        
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center">
+            <Users size={24} className="text-blue-600" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-black text-slate-900">{admT.staffManagement}</h2>
+            <p className="text-sm text-slate-600 font-bold">{staff.length} {admT.staffManagement}</p>
+          </div>
+        </div>
         <button
-          onClick={() => setAddModalOpen(true)}
-          className="px-6 py-3 rounded-xl bg-orange-600 text-white font-bold hover:bg-orange-700 transition-all flex items-center gap-2"
+          onClick={() => {
+            resetForm();
+            setShowAddModal(true);
+          }}
+          className="px-5 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg"
         >
-          <UserPlus size={20} />
-          {admT?.addStaff || "إضافة موظف"}
+          <Plus size={20} />
+          {admT.addStaff}
         </button>
       </div>
 
-      {/* Staff List */}
-      {staff.length === 0 ? (
-        <div className="bg-white p-12 rounded-2xl border text-center">
-          <Users size={48} className="mx-auto mb-4 text-slate-300" />
-          <p className="text-slate-500 font-bold">
-            {admT?.noStaff || "لا يوجد موظفين حالياً"}
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {staff.map((member) => (
-            <div
-              key={member.id}
-              className="bg-white p-4 rounded-2xl border-2 border-slate-200 hover:border-orange-300 transition-all"
+      {/* Staff Table */}
+      <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+        {staff.length === 0 ? (
+          <div className="py-20 text-center">
+            <Users size={48} className="mx-auto mb-4 text-slate-300" />
+            <h3 className="font-black text-xl text-slate-900 mb-2">{admT.noStaff}</h3>
+            <p className="text-slate-600 font-bold mb-6">{admT.addFirstStaff}</p>
+            <button
+              onClick={() => {
+                resetForm();
+                setShowAddModal(true);
+              }}
+              className="px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all inline-flex items-center gap-2"
             >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl ${
-                    member.isActive !== false 
-                      ? "bg-green-100 text-green-700" 
-                      : "bg-red-100 text-red-700"
-                  }`}>
-                    {member.username?.charAt(0)?.toUpperCase() || "U"}
-                  </div>
-                  <div>
-                    <div className="font-black text-slate-900 flex items-center gap-2">
+              <Plus size={20} />
+              {admT.addStaff}
+            </button>
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead className="bg-slate-50 border-b">
+              <tr>
+                <th className="px-6 py-4 text-right text-sm font-black text-slate-900">{admT.fullName}</th>
+                <th className="px-6 py-4 text-right text-sm font-black text-slate-900">{admT.username}</th>
+                <th className="px-6 py-4 text-right text-sm font-black text-slate-900">{admT.role}</th>
+                <th className="px-6 py-4 text-right text-sm font-black text-slate-900">{admT.phone}</th>
+                <th className="px-6 py-4 text-right text-sm font-black text-slate-900">{admT.status}</th>
+                <th className="px-6 py-4 text-right text-sm font-black text-slate-900">{admT.actions}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {staff.map((member) => (
+                <tr key={member.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="font-bold text-slate-900">{member.fullName}</div>
+                    {member.salary && (
+                      <div className="text-xs text-slate-500 font-bold flex items-center gap-1">
+                        <DollarSign size={12} />
+                        {member.salary}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <code className="text-sm font-bold bg-slate-100 px-2 py-1 rounded">
                       {member.username}
+                    </code>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                      member.role === "admin" ? "bg-purple-100 text-purple-700" :
+                      member.role === "manager" ? "bg-blue-100 text-blue-700" :
+                      "bg-green-100 text-green-700"
+                    }`}>
+                      {member.role === "admin" ? admT.admin :
+                       member.role === "manager" ? admT.manager :
+                       admT.cashier}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-sm font-bold text-slate-600">
+                      {member.phone || "-"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <button
+                      onClick={() => toggleStatus(member)}
+                      disabled={loading}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                        member.isActive !== false
+                          ? "bg-green-100 text-green-700 hover:bg-green-200"
+                          : "bg-red-100 text-red-700 hover:bg-red-200"
+                      }`}
+                    >
                       {member.isActive !== false ? (
-                        <CheckCircle size={14} className="text-green-600" />
+                        <>
+                          <UserCheck size={14} />
+                          {admT.active}
+                        </>
                       ) : (
-                        <XCircle size={14} className="text-red-600" />
+                        <>
+                          <UserX size={14} />
+                          {admT.inactive}
+                        </>
                       )}
+                    </button>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => openEditModal(member)}
+                        className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all"
+                        title={admT.edit}
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(member.id)}
+                        disabled={loading}
+                        className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all"
+                        title={admT.delete}
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
-                    <div className="text-xs font-bold text-slate-500">
-                      {member.role === "cashier" 
-                        ? (admT?.cashier || "كاشير") 
-                        : (admT?.manager || "مدير")}
-                    </div>
-                  </div>
-                </div>
-              </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
-              <div className="text-xs font-bold text-slate-500 mb-3">
-                {admT?.createdAt || "تاريخ الإضافة"}:{" "}
-                {member.createdAt 
-                  ? new Date(member.createdAt).toLocaleDateString(
-                      adminLang === "ar" ? "ar-SA" : adminLang === "tr" ? "tr-TR" : "en-US"
-                    )
-                  : "-"}
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => openEditModal(member)}
-                  className="flex-1 py-2 rounded-xl bg-blue-50 text-blue-600 font-bold hover:bg-blue-100 transition-all flex items-center justify-center gap-1"
-                >
-                  <Edit2 size={14} />
-                  {admT?.edit || "تعديل"}
-                </button>
-                <button
-                  onClick={() => handleDeleteStaff(member.id)}
-                  className="flex-1 py-2 rounded-xl bg-red-50 text-red-600 font-bold hover:bg-red-100 transition-all flex items-center justify-center gap-1"
-                >
-                  <Trash2 size={14} />
-                  {admT?.delete || "حذف"}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* =================== ADD MODAL =================== */}
-      {addModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-6">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full">
-            <h3 className="font-black text-xl mb-4">
-              {admT?.addStaff || "إضافة موظف"}
+      {/* Add/Edit Modal */}
+      {(showAddModal || showEditModal) && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="font-black text-2xl mb-6 text-slate-900">
+              {showAddModal ? admT.addStaff : admT.editStaff}
             </h3>
 
             <div className="space-y-4">
+              {/* Full Name */}
               <div>
-                <label className="block text-sm font-bold mb-2">
-                  {admT?.username || "اسم المستخدم"} *
+                <label className="block text-sm font-bold mb-2 text-slate-700">
+                  {admT.fullName} <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
-                  value={newUsername}
-                  onChange={(e) => setNewUsername(e.target.value)}
-                  placeholder={admT?.enterUsername || "أدخل اسم المستخدم"}
-                  className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold focus:border-orange-600 focus:outline-none"
+                  value={formData.fullName}
+                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  placeholder={admT.enterFullName}
+                  className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold focus:border-blue-600 focus:outline-none transition-all"
                 />
               </div>
 
+              {/* Username */}
               <div>
-                <label className="block text-sm font-bold mb-2">
-                  {admT?.password || "كلمة المرور"} *
+                <label className="block text-sm font-bold mb-2 text-slate-700">
+                  {admT.username} <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  placeholder={admT.enterUsername}
+                  className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold focus:border-blue-600 focus:outline-none transition-all"
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-sm font-bold mb-2 text-slate-700">
+                  {admT.password} <span className="text-red-600">*</span>
                 </label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder={admT?.enterPassword || "أدخل كلمة المرور"}
-                    className="w-full p-3 pr-12 rounded-xl border-2 border-slate-200 font-bold focus:border-orange-600 focus:outline-none"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder={admT.enterPassword}
+                    className={`w-full p-3 rounded-xl border-2 border-slate-200 font-bold focus:border-blue-600 focus:outline-none transition-all ${adminLang === "ar" ? "pr-12" : "pl-12"}`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    className={`absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 ${adminLang === "ar" ? "right-4" : "left-4"}`}
+                    title={showPassword ? admT.hidePassword : admT.showPassword}
                   >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
               </div>
 
+              {/* Role */}
               <div>
-                <label className="block text-sm font-bold mb-2">
-                  {admT?.role || "الصلاحية"}
+                <label className="block text-sm font-bold mb-2 text-slate-700">
+                  {admT.role}
                 </label>
                 <select
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value)}
-                  className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold focus:border-orange-600 focus:outline-none"
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold focus:border-blue-600 focus:outline-none transition-all"
                 >
-                  <option value="cashier">{admT?.cashier || "كاشير"}</option>
-                  <option value="manager">{admT?.manager || "مدير"}</option>
+                  <option value="cashier">{admT.cashier}</option>
+                  <option value="manager">{admT.manager}</option>
+                  <option value="admin">{admT.admin}</option>
                 </select>
               </div>
-            </div>
 
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={handleAddStaff}
-                className="flex-1 py-3 rounded-xl bg-orange-600 text-white font-black hover:bg-orange-700 transition-all"
-              >
-                {admT?.save || "حفظ"}
-              </button>
-              <button
-                onClick={() => {
-                  setAddModalOpen(false);
-                  setNewUsername("");
-                  setNewPassword("");
-                  setNewRole("cashier");
-                }}
-                className="flex-1 py-3 rounded-xl bg-slate-100 font-black hover:bg-slate-200 transition-all"
-              >
-                {admT?.cancel || "إلغاء"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* =================== EDIT MODAL =================== */}
-      {editModalOpen && selectedStaff && (
-        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-6">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full">
-            <h3 className="font-black text-xl mb-4">
-              {admT?.editStaff || "تعديل الموظف"}
-            </h3>
-
-            <div className="space-y-4">
+              {/* Phone */}
               <div>
-                <label className="block text-sm font-bold mb-2">
-                  {admT?.username || "اسم المستخدم"} *
+                <label className="block text-sm font-bold mb-2 text-slate-700">
+                  {admT.phone} <span className="text-slate-400">({admT.optional})</span>
                 </label>
                 <input
-                  type="text"
-                  value={editUsername}
-                  onChange={(e) => setEditUsername(e.target.value)}
-                  className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold focus:border-orange-600 focus:outline-none"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder={admT.enterPhone}
+                  className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold focus:border-blue-600 focus:outline-none transition-all"
                 />
               </div>
 
+              {/* Salary */}
               <div>
-                <label className="block text-sm font-bold mb-2">
-                  {admT?.newPassword || "كلمة المرور الجديدة"} ({admT?.optional || "اختياري"})
+                <label className="block text-sm font-bold mb-2 text-slate-700">
+                  {admT.salary} <span className="text-slate-400">({admT.optional})</span>
                 </label>
-                <div className="relative">
-                  <input
-                    type={showEditPassword ? "text" : "password"}
-                    value={editPassword}
-                    onChange={(e) => setEditPassword(e.target.value)}
-                    placeholder={admT?.leaveEmptyToKeep || "اتركه فارغاً للإبقاء على القديمة"}
-                    className="w-full p-3 pr-12 rounded-xl border-2 border-slate-200 font-bold focus:border-orange-600 focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowEditPassword(!showEditPassword)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                  >
-                    {showEditPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
+                <input
+                  type="number"
+                  value={formData.salary}
+                  onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                  placeholder={admT.enterSalary}
+                  className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold focus:border-blue-600 focus:outline-none transition-all"
+                />
               </div>
 
-              <div>
-                <label className="block text-sm font-bold mb-2">
-                  {admT?.role || "الصلاحية"}
+              {/* Active Status */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+                />
+                <label htmlFor="isActive" className="font-bold text-slate-700">
+                  {admT.active}
                 </label>
-                <select
-                  value={editRole}
-                  onChange={(e) => setEditRole(e.target.value)}
-                  className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold focus:border-orange-600 focus:outline-none"
-                >
-                  <option value="cashier">{admT?.cashier || "كاشير"}</option>
-                  <option value="manager">{admT?.manager || "مدير"}</option>
-                </select>
               </div>
             </div>
 
             <div className="flex gap-3 mt-6">
               <button
-                onClick={handleUpdateStaff}
-                className="flex-1 py-3 rounded-xl bg-orange-600 text-white font-black hover:bg-orange-700 transition-all"
+                onClick={showAddModal ? handleAdd : handleEdit}
+                disabled={loading}
+                className={`flex-1 py-3 rounded-xl font-bold transition-all ${
+                  loading
+                    ? "bg-slate-400 text-white cursor-not-allowed"
+                    : "bg-blue-600 text-white hover:bg-blue-700 shadow-lg"
+                }`}
               >
-                {admT?.save || "حفظ"}
+                {loading ? (
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto"></div>
+                ) : (
+                  admT.save
+                )}
               </button>
               <button
                 onClick={() => {
-                  setEditModalOpen(false);
+                  resetForm();
+                  setShowAddModal(false);
+                  setShowEditModal(false);
                   setSelectedStaff(null);
-                  setEditUsername("");
-                  setEditPassword("");
-                  setEditRole("cashier");
                 }}
-                className="flex-1 py-3 rounded-xl bg-slate-100 font-black hover:bg-slate-200 transition-all"
+                disabled={loading}
+                className="flex-1 py-3 rounded-xl bg-slate-100 font-bold hover:bg-slate-200 transition-all"
               >
-                {admT?.cancel || "إلغاء"}
+                {admT.cancel}
               </button>
             </div>
           </div>
