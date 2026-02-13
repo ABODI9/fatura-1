@@ -27,7 +27,7 @@ import { AdminLoginScreen } from "./components/admin/AdminLoginScreen";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import { Sidebar } from "./components/admin/Sidebar";
 
-import { CashierLogin } from "./components/cashier/CashierLogin";
+import { CashierGate } from "./components/cashier/CashierGate";
 import { CashierPage } from "./components/cashier/CashierPage";
 
 import { MenuSection } from "./components/admin/MenuSection";
@@ -228,15 +228,7 @@ export default function App() {
     return onAuthStateChanged(auth, setUser);
   }, []);
 
-  // Load cashier session
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const raw = localStorage.getItem("wingi_cashier_session");
-    if (!raw) return;
-    try {
-      setCashierSession(JSON.parse(raw));
-    } catch {}
-  }, []);
+ 
 
   // Load customer table from localStorage (so /menu works after refresh)
   useEffect(() => {
@@ -633,50 +625,45 @@ export default function App() {
   }
 
   // 2) Cashier
-  if (isCashierRoute) {
-    if (!cashierSession) {
-      return (
-        <LuxuryShell dir={adminLang === "ar" ? "rtl" : "ltr"} tone="dark">
-          <CashierLogin
-            db={db}
-            appId={appId}
-            adminLang={adminLang}
-            cashierAuthError={cashierAuthError}
-            setCashierAuthError={setCashierAuthError}
-            onBack={() => (window.location.href = "/")}
-            onLogin={(session) => {
-              setCashierSession(session);
-              try {
-                localStorage.setItem("wingi_cashier_session", JSON.stringify(session));
-              } catch {}
-            }}
-          />
-        </LuxuryShell>
-      );
-    }
-
+if (isCashierRoute) {
+  if (!cashierSession) {
     return (
       <LuxuryShell dir={adminLang === "ar" ? "rtl" : "ltr"} tone="dark">
-        <CashierPage
+        <CashierGate
           db={db}
           appId={appId}
           adminLang={adminLang}
-          CURRENCY={CURRENCY}
-          cashierSession={cashierSession}
-          // . give cashier ability to change table state
-          setTableStatus={setTableStatus}
-          tablesColPath={tablesColPath}
-          onLogout={() => {
-            try {
-              localStorage.removeItem("wingi_cashier_session");
-            } catch {}
-            setCashierSession(null);
-            window.location.href = "/";
-          }}
+          onBack={() => (window.location.href = "/")}
+          onReady={(session) => setCashierSession(session)}
         />
       </LuxuryShell>
     );
   }
+
+  return (
+    <LuxuryShell dir={adminLang === "ar" ? "rtl" : "ltr"} tone="dark">
+      <CashierPage
+        db={db}
+        appId={appId}
+        adminLang={adminLang}
+        CURRENCY={CURRENCY}
+        cashierSession={cashierSession}
+        setTableStatus={setTableStatus}
+        tablesColPath={tablesColPath}
+        onLogout={() => {
+          try {
+            localStorage.removeItem("wingi_cashier_session");
+            localStorage.removeItem("wingi_cashier_last_auth_day");
+          } catch {}
+          setCashierSession(null);
+          window.location.href = "/";
+        }}
+      />
+    </LuxuryShell>
+  );
+}
+
+
 
   // 3) Admin
   if (isAdminRoute) {

@@ -574,8 +574,7 @@ export const CashierPage = ({
 
   // =================== MAIN LAYOUT ===================
   return (
-    <div className="min-h-screen bg-slate-50 flex font-sans" dir={dir}>
-      {/* Sidebar */}
+    <div className="min-h-screen bg-slate-50 flex font-sans text-black" dir={dir}>      {/* Sidebar */}
       <aside className="w-20 lg:w-64 bg-slate-900 text-white flex flex-col shrink-0 transition-all">
         <div className="p-6 text-center border-b border-slate-800">
           <h1 className="hidden lg:block text-xl font-black text-orange-500 tracking-wider">
@@ -799,7 +798,7 @@ export const CashierPage = ({
                           >
                             +
                           </button>
-                          <span className="text-sm font-black w-5 text-center">{Number(item.quantity || 1)}</span>
+                          <span className="text-sm font-black w-5 text-center text-black">{Number(item.quantity || 1)}</span>
                           <button
                             onClick={() => updateCartQuantity(item.id, -1)}
                             className="w-7 h-7 bg-white rounded-xl shadow-sm text-orange-600 flex items-center justify-center font-bold"
@@ -1055,7 +1054,7 @@ export const CashierPage = ({
                         setActiveTab("tables");
                       }
                     }}
-                    className="w-full bg-slate-900 hover:bg-black text-white py-5 rounded-2xl font-black text-xl transition-all shadow-xl shadow-slate-200"
+                      className="w-full bg-slate-900 hover:bg-black text-white py-5 rounded-2xl font-black text-xl transition-all shadow-xl shadow-slate-200"
                   >
                     {t.finalizeClose}
                   </button>
